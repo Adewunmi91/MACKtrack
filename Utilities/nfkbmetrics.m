@@ -239,10 +239,10 @@ for i = 1:length(aux.thresholds)
 end
 
 %% TRIM EVERYBODY to a common length (of "good" sets, our current minimum is about 21 hrs (252 frames)
-try
-    metrics.time_series = metrics.time_series(:,1:254);
-    metrics.integrals = metrics.integrals(:,1:254);
-    metrics.derivatives = metrics.derivatives(:,1:252);
-catch me
-    disp('Note: vectors too short to cap @ 257 frames')
-end
+% try
+%     metrics.time_series = metrics.time_series(:,1:254);
+%     metrics.integrals = metrics.integrals(:,1:254);
+%     metrics.derivatives = metrics.derivatives(:,1:252);
+% catch me
+%     disp('Note: vectors too short to cap @ 257 frames')
+% end

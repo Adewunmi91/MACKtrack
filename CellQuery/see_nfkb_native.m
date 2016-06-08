@@ -1,4 +1,4 @@
-function [graph, info, measure] = see_nfkb_native(id,varargin)
+    function [graph, info, measure] = see_nfkb_native(id,varargin)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 % [graph, info, measure] = see_nfkb_native(id,graph_flag, verbose_flag)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -49,10 +49,9 @@ info.Module = 'nfkbdimModule';
 % Set display/filtering parameters
 max_shift = 1; % Max allowable frame shift in XY-specific correction
 start_thresh = 2; % Maximal allowable start level above baseline
-info.graph_limits = [-0.25 8]; % Min/max used in graphing
+info.graph_limits = [-0.25 8]; % Min/max used in graphing-
 dendro = 0;
 colors = setcolors;
-
 
 % Experiment-specific visualization settings/tweaks (load spreadsheet URL)
 home_folder = mfilename('fullpath');
@@ -104,13 +103,19 @@ if isnumeric(id)
     % AA's experiments    
     elseif ~isempty(strfind(locations.spreadsheet,'1s51cOI7NvLIOEpEhZWjJKsPkCOE5Qz39m4tHa9nJ7ok'))
         % a) early experiments; heterozygous cells
-        if id <= 60
+        
+        if ismember (id, [1:60, 364:379])
             start_thresh = 1.5;
-            info.graph_limits = [-0.25 6];
+            info.graph_limits = [-0.25 5.5];
+            info.baseline = 1;
         else
             start_thresh = 1.8;
             info.graph_limits = [-0.25 5.5];
             info.baseline = 0.75;
+        end
+        %pre-stimulated cells 
+        if ismember(id,[164:169, 171:178, 179:186, 188:190, 192:194,196:198, 200:205, 271, 296:297 ]);
+            start_thresh = 10;
         end
     end
 end
@@ -158,6 +163,13 @@ nuc_lvl = nanmedian(measure.MeanIntensityNuc(keep,1:31),2);
 nuc_thresh = nanmedian(nuc_lvl)+2.5*robuststd(nuc_lvl(:),2);
 area_thresh = 90;
 
+%Drop area threshold for peritoneal macrophages 
+    %AA's experiments
+if isnumeric(id)
+    if ismember (id, [243:255, 284: 291,316:339])
+           area_thresh = 20;
+    end    
+end
 droprows =  [droprows, prctile(nfkb(:,1:8),18.75,2) > start_thresh];
 droprows =  [droprows, nanmedian(measure.MeanIntensityNuc(:,1:31),2) > nuc_thresh];
 
@@ -228,6 +240,8 @@ if graph_flag
     colormapStack(graph.var(graph.order,:),graph.celldata(graph.order,:), graph.opt);    
     
     % Hierarchial linkage
+  
+    
     if dendro
         graph.dendro.label = cell(size(graph.var,1),1);
         graph.dendro.label(:) = {''};
