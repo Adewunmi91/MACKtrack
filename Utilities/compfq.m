@@ -40,28 +40,30 @@ end
 %peak frequency
 %frequency that contains most the signal power
 figure ('Name', 'Fq Analysis')
-subplot (2,2,1)
-plot(fourier1.freq*3600, nanmean(fourier1.fft, 1))
-hold on;
-plot(fourier2.freq*3600, nanmean(fourier2.fft, 1))
-title ('Fourier')
-xlabel ('Frequency (1/hr)' )
-ylabel ('Amplitude')
-legend (name1, name2,'Location', 'northeast') 
+% subplot (2,2,1)
+% plot(fourier1.freq*3600, nanmean(fourier1.fft, 1))
+% hold on;
+% plot(fourier2.freq*3600, nanmean(fourier2.fft, 1))
+% title ('Fourier')
+% xlabel ('Frequency (1/hr)' )
+% ylabel ('Amplitude')
+% legend (name1, name2,'Location', 'northeast') 
 
-subplot (2,2,2)
+subplot (2,2,1)
 
 x = fourier1.freq*3600;
 plot (x, nanmean(fourier1.power, 1))
+%plot (x, fourier1.power)
 hold on;
 x = fourier2.freq*3600;
+%plot (x, fourier2.power)
 plot(x, nanmean(fourier2.power, 1))
 title ('Power')
 xlabel ('Frequency (1/hr) ')
 ylabel ('Power')
 legend (name1, name2,'Location', 'northeast') 
 
-subplot (2,2,3)
+subplot (2,2,2)
 
 x = linspace (0,1,20);
 hist1 = histogram(metrics1.peakfreq,x);
@@ -80,7 +82,7 @@ legend (name1, name2,'Location', 'northeast')
 
 
 %Fraction oscillating
-subplot (2,2,4)
+subplot (2,2,3)
 
 x = linspace(0,1, 20);
 hist1 = histogram(nanmean(metrics1.oscfrac,2),x);

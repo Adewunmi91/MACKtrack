@@ -15,10 +15,11 @@ if nargin >0
         end
         
     end
-    %[~,cum_graph.order] = sort(nansum(cum_graph.var(:,1:min([size(cum_graph.var,2),150])),2),'descend');
+    [~,cum_graph.order] = sort(nansum(cum_graph.var(:,1:min([size(cum_graph.var,2),150])),2),'descend');
   
-    [~,cum_graph.order] = sort(nanmean(cum_metrics.oscfrac,2),'descend');
-    
+    %[~,cum_graph.order] = sort(nanmean(cum_metrics.envelope,2),'descend');
+   % [~,cum_graph.order] = sort(cum_metrics.oscfrac(:,2),'descend');
+    %[~,cum_graph.order] = sort(cum_metrics.peakfreq,'descend');
     %cum_graph.opt defaults to the first component graph
    
     figs.a = figure('name','ColormapStack');

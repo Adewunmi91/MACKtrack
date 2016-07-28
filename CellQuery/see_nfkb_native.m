@@ -114,8 +114,13 @@ if isnumeric(id)
             info.baseline = 0.75;
         end
         %pre-stimulated cells 
-        if ismember(id,[164:169, 171:178, 179:186, 188:190, 192:194,196:198, 200:205, 271, 296:297 ]);
+        if ismember(id,[164:169, 171:178, 179:186, 188:190, 192:194,196:198, 200:205, 271, 296:297, 434:439, 464:471]);
             start_thresh = 10;
+        end
+        %weak nuclei 
+        if ismember(id, 0)
+            measure.NFkBdimNuclear = measure.NFkBdimNuclear_erode;
+            disp('(Using eroded nuclei)')
         end
     end
 end
@@ -145,10 +150,10 @@ end
 
 nfkb_baseline = nanmin([nanmin(nfkb(:,1:4),[],2),nfkb_min],[],2);
 nfkb = nfkb - repmat(nfkb_baseline,1,size(nfkb,2));
-if verbose_flag
-    figure,imagesc(nfkb,prctile(nfkb(:),[5,99])),colormap parula, colorbar
-    title('All (baseline-subtracted) trajectories')
-end
+% if verbose_flag
+%     figure,imagesc(nfkb,prctile(nfkb(:),[5,99])),colormap parula, colorbar
+%     title('All (baseline-subtracted) trajectories')
+% end
 nfkb = nfkb/mean(info.parameters.adj_distr(2,:));
 
 % Filtering, part 2: eliminate outlier cells (based on mean value)
@@ -191,6 +196,7 @@ if verbose_flag
     end
     disp(['FINAL: ', num2str(sum(max(droprows,[],2) == 0)),' cells'])
 
+     if graph_flag
     % Show cutoff for nuclear and starting level cutoffs 
     ranksmult(nfkb(keep,:),start_lvl);
     h = suptitle(['x = NFkB activation @ start. Threshold = ',num2str(start_thresh)]);
@@ -202,6 +208,8 @@ if verbose_flag
     ranksmult(nfkb(keep,:),nanmedian(measure.Area(keep,:),2))
     h = suptitle(['x = Median area. Threshold = ',num2str(area_thresh)]);
     set(h,'FontSize',14)
+     end
+     
 
 end
 
@@ -219,7 +227,7 @@ if dendro
 else
     [~,graph.order] = sort(nansum(graph.var(:,1:min([size(graph.var,2),150])),2),'descend');
 end
-if verbose_flag
+if verbose_flag 
     for i = 1:length(shift_xy)
         disp(['xy ',num2str(i),' shift : ',num2str(shift_xy(i))])
     end
