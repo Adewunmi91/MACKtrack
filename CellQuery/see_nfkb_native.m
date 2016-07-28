@@ -9,9 +9,10 @@
 % id             filename or experiment ID (from Google Spreadsheet specified in "locations.mat")
 %
 % INPUT PARAMETERS (optional; specify with name-value pairs)
-% 'Display'      'on' or 'off' - show graphs (default: process data only; no graphs)
-% 'Verbose'      'on' or 'off' - show verbose output
-% 'Endframe'     final frame used to filter for long-lived cells (default = 100)
+% 'Display'         'on' or 'off' - show graphs (default: process data only; no graphs)
+% 'Verbose'         'on' or 'off' - show verbose output
+% 'MinLifetime'     final frame used to filter for long-lived cells (default = 100)
+% 'ConvectionShift'  Maximum allowable time-shift between different XYs (to correct for poor mixing)
 %
 % OUTPUTS:  
 % graph          primary output structure; must specify
@@ -35,19 +36,23 @@ addRequired(p,'id',valid_id);
 expectedFlags = {'on','off'};
 addParameter(p,'Display','off', @(x) any(validatestring(x,expectedFlags)));
 addParameter(p,'Verbose','off', @(x) any(validatestring(x,expectedFlags)));
-addParameter(p,'Endframe',100, @isnumeric);
+valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
+    'Convection correction parameter must be single integer >= 0');
+addParameter(p,'ConvectionShift',1, valid_conv);
+addParameter(p,'MinLifetime',100, @isnumeric);
 
 % Parse parameters, assign to variables
 parse(p,id, varargin{:})
 if strcmpi(p.Results.Verbose,'on'); verbose_flag = 1; else verbose_flag = 0; end
 if strcmpi(p.Results.Display,'on'); graph_flag = 1; else graph_flag = 0; end
-endframe = p.Results.Endframe;
+MinLifetime = p.Results.MinLifetime;
+max_shift = p.Results.ConvectionShift; % Max allowable frame shift in XY-specific correction
+
 %% Load data
 [measure, info] = loadID(id);
 info.Module = 'nfkbdimModule';
 
 % Set display/filtering parameters
-max_shift = 1; % Max allowable frame shift in XY-specific correction
 start_thresh = 2; % Maximal allowable start level above baseline
 info.graph_limits = [-0.25 8]; % Min/max used in graphing-
 dendro = 0;
@@ -62,8 +67,8 @@ load([home_folder, 'locations.mat'],'-mat')
 % BT's experiments
 if isnumeric(id)
     if  ~isempty(strfind(locations.spreadsheet,'10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY'))
-        % a) early experiments; heterozygous cells
-        if (id <= 270) || ismember(id,370:379)
+        % a) Heterozygous cell experiments
+        if (id <= 270) || ismember(id,[370:379, 384:391, 395, 396])
             start_thresh = 1.5;
             info.graph_limits = [-0.25 5.5];
         end
@@ -131,21 +136,21 @@ robuststd = @(distr, cutoff) nanstd(distr(distr < (nanmedian(distr)+cutoff*nanst
 % Filtering, part 1 cell fate and cytoplasmic intensity
 droprows = [];
 droprows = [droprows, sum(isnan(measure.NFkBdimNuclear(:,1:4)),2)>2]; % Cells existing @ expt start
-droprows = [droprows, sum(isnan(measure.NFkBdimNuclear(:,1:endframe)),2)>3]; % Long-lived cells
+droprows = [droprows, sum(isnan(measure.NFkBdimNuclear(:,1:MinLifetime)),2)>3]; % Long-lived cells
 droprows = [droprows, sum(measure.NFkBdimCytoplasm(:,1:4)==0,2)>0]; % Very dim cells
 %droprows = [droprows, info.CellData(:,end)]; % Non-edge cells
 
-% NFkB normalization - subtract baseline for each cell; divide y background distribution width
+% NFkB normalization - subtract baseline for each cell (either starting value or 4th percentile of smoothed trajectory)
 nfkb = measure.NFkBdimNuclear(:,:);
 nfkb_smooth = nan(size(nfkb));
 for i = 1:size(nfkb,1)
     nfkb_smooth(i,~isnan(nfkb(i,:))) = medfilt1(nfkb(i,~isnan(nfkb(i,:))),3);
 end
 % If default end frame is specified, use entire vector for baseline calculation. Otherwise use specified baseline.
-if ismember('Endframe',p.UsingDefaults)
+if ismember('MinLifetime',p.UsingDefaults)
     nfkb_min = prctile(nfkb_smooth,2,2);
 else
-    nfkb_min = prctile(nfkb_smooth(:,1:endframe),4,2);
+    nfkb_min = prctile(nfkb_smooth(:,1:MinLifetime),4,2);
 end
 
 nfkb_baseline = nanmin([nanmin(nfkb(:,1:4),[],2),nfkb_min],[],2);
@@ -205,7 +210,7 @@ if verbose_flag
     h = suptitle(['x = Nuclear stain level. Threshold = ',num2str(nuc_thresh)]);
     set(h,'FontSize',14)
     
-    ranksmult(nfkb(keep,:),nanmedian(measure.Area(keep,:),2))
+    ranksmult(nfkb(keep,:),nanmedian(measure.Area(keep,:),2));
     h = suptitle(['x = Median area. Threshold = ',num2str(area_thresh)]);
     set(h,'FontSize',14)
      end
@@ -217,7 +222,6 @@ info.keep = max(droprows,[],2) == 0;
 nfkb = nfkb(info.keep,:);
 
 %% Initialize outputs, do final corrections
-
 graph.celldata = info.CellData(info.keep,:);
 
 % Correct for XY positions that activate late

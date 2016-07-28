@@ -25,7 +25,7 @@ switch parameters.ImageType
     case 'phase'
         % Set function names
         fnstem = 'phase';
-        X = backgroundcalculate(patameters.ImageSize);
+        X = backgroundcalculate(parameters.ImageSize);
 end
 
 % Get image bit depth
@@ -72,7 +72,7 @@ for cycle = 1:length(parameters.TimeRange)
     tic
     nucName1 = eval(parameters.NucleusExpr);
     images.nuc = checkread([locations.scope,parameters.ImagePath,nucName1],bit_depth,1,parameters.debug);
-    present = nucleusID(images.nuc,parameters,data,X);
+    present = nucleusID(images.nuc,parameters,data);
     data = combinestructures(data,present);
     tocs.NucMasking = toc;
     

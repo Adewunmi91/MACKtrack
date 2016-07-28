@@ -1,4 +1,4 @@
-function varargout = ranksmult(graph_data, rankfactor, varargin)
+function [ha, plot_order] = ranksmult(graph_data, rankfactor, varargin)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 % ha = ranksmult(graph_data, rankfactor)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -14,7 +14,8 @@ function varargout = ranksmult(graph_data, rankfactor, varargin)
 % 'YLim'        enforced Y limits of graph
 %
 % OUTPUT:
-% varargout     (1 argument only) handles to tight_sublplot axes 
+% ha            handles to tight_sublplot axes 
+% plot_order    indicies of plotted individuals 
 %-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 %% Create input parser object, add required params from function input
@@ -33,15 +34,13 @@ addRequired(p,'rankfactor',valid_rank);
 % Optional parameters
 addParameter(p,'x',1:size(graph_data,2),@(x) assert(isvector(x)&&(length(x)==size(graph_data,2)),...
     'Length of X vector needs to match observations (columns) in graph_data'));
-addParameter(p,'YLim',prctile(graph_data(:),[5 99]), @(x) assert(numel(x)==2,'YLim must be in form [y_min y_max'));
+addParameter(p,'YLim',prctile(graph_data(:),[5 99]), @(x) assert(numel(x)==2,'YLim must be in form [y_min y_max]'));
 
 % Parse parameters, assign to variables
 parse(p,graph_data, rankfactor, varargin{:})
 measure_bounds = p.Results.YLim;
 xvect = p.Results.x;
-%%
-
-% Rank on rank factors; scale 0 to 100
+%% Rank using rank factors; scale 0 to 100
 [rank_val,idx] = sort(rankfactor,'ascend');
 
 rank_val = floor((rank_val-min(rank_val))/(max(rank_val)-min(rank_val))*100);
@@ -81,10 +80,6 @@ for i =1:length(plot_order)
         disp_str = [num2str(round(number*100)/100),'e',num2str(exp)];
     end
     
-    text(xpos,ypos,['x = ',num2str(disp_str)],'Parent',ha(i),'HorizontalAlignment','right')
+    text(xpos,ypos,['#',num2str(i),': x = ',num2str(disp_str)],'Parent',ha(i),'HorizontalAlignment','right')
 
-end
-
-if nargout>0
-    varargout{1} = ha;
 end
