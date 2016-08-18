@@ -1,6 +1,6 @@
-function [measure, info] = loadID(id, options)
+function [measure, info] = BTloadID(id, options)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-% [measure, info] = loadID(id, options)
+% [measure, info] = BTloadID(id, options)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 % LOADID pulls results from an experimental set using a "Scope Runs" Google Doc -
 % choose a set by its ID number
@@ -26,7 +26,9 @@ end
 home_folder = mfilename('fullpath');
 slash_idx = strfind(home_folder,filesep);
 load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
-
+locations.spreadsheet ='https://docs.google.com/spreadsheets/d/10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY/pubhtml';
+locations.scope ='\\BIGGIE\data\';
+locations.data = 'E:\BT\Tracking\';
 % Find/load AllMeasurements.mat - a full file path can be specfied, or an
 % ID corresponding to an entry on the ScopeRuns spreadsheet.
 tic

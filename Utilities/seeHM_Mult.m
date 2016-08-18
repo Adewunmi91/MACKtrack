@@ -1,14 +1,11 @@
-function  seeMult(varargin)
+function seeHM_Mult (varargin)
 
-%might be a problem if different time scales
-%truncate as necessary
-%[metrics,aux, graph, info, measure] = nfkbmetrics(id,varargin)
 if nargin >0
     id = varargin {1};
     [metrics, ~, graph] = nfkbmetrics (id);
     
    
-    %cum_graph.opt defaults to the first component graph
+    %graph.opt defaults to the first component graph
     colors = setcolors;    
     [~, info]= loadID (id);
     name = info.name;
@@ -36,11 +33,27 @@ if nargin >0
         %text(xpos,ypos,['interpk: ',num2str(met)],'Parent',graph.smult.h(i))
         
     end  
+    for i = 2:nargin
+        [nm, ~, ng] = nfkbmetrics(varargin{i});
+        graph.var = cat (1,graph.var,ng.var);
+        graph.celldata = cat (1, graph.celldata, ng.celldata);
+        metrx = fieldnames (metrics);
+        for j=1:numel (metrx)
+                metrics.(metrx{j})= cat(1,  metrics.(metrx{j}),  nm.(metrx{j}));
+        end
         
+    end
+    [~,graph.order] = sort(nansum(graph.var(:,1:min([size(graph.var,2),150])),2),'descend');
+  
+    %[~,graph.order] = sort(nanmean(metrics.envelope,2),'descend');
+   % [~,graph.order] = sort(metrics.oscfrac(:,2),'descend');
+    %[~,graph.order] = sort(metrics.peakfreq,'descend');
+    %graph.opt defaults to the first component graph
+   
+    figs.a = figure('name','ColormapStack');
+    set(figs.a,'Position', [500 700 1200 600])
+    colormapStack(graph.var(graph.order,:),graph.celldata(graph.order,:), graph.opt); 
+    set (gca, 'FontSize', 20)
     
-
+    
 end
-    
-    
-
-

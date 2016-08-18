@@ -1,14 +1,16 @@
 function compSeries (id1, id2, varargin)
 %INPUT: id1, name1, id2, name2
 
-[metrics1, fourier1, graph1, info1, ~] = nfkbmetrics (id1);
-[metrics2, fourier2, graph2, info2, ~] = nfkbmetrics (id2);
+[metrics1, fourier1, graph1] = nfkbmetrics (id1);
+[metrics2, fourier2, graph2] = nfkbmetrics (id2);
 
 
 if (nargin > 3)
     name1 = varargin{1};
     name2 = varargin{2};
 else
+    [~,info1] = loadID (id1);
+    [~,info2] = loadID (id2);
     name1 = strsplit(info1.name, '_');
     name1 = name1{2};
     name2 = strsplit (info2.name,'_');

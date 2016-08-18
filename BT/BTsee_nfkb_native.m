@@ -1,4 +1,4 @@
-    function [graph, info, measure] = see_nfkb_native(id,varargin)
+    function [graph, info, measure] = BTsee_nfkb_native(id,varargin)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 % [graph, info, measure] = see_nfkb_native(id,graph_flag, verbose_flag)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -49,7 +49,7 @@ MinLifetime = p.Results.MinLifetime;
 max_shift = p.Results.ConvectionShift; % Max allowable frame shift in XY-specific correction
 
 %% Load data
-[measure, info] = loadID(id);
+[measure, info] = BTloadID(id);
 info.Module = 'nfkbdimModule';
 
 % Set display/filtering parameters
@@ -63,7 +63,9 @@ home_folder = mfilename('fullpath');
 slash_idx = strfind(home_folder,filesep);
 home_folder = home_folder(1:slash_idx(end-1));
 load([home_folder, 'locations.mat'],'-mat')
-
+locations.spreadsheet ='https://docs.google.com/spreadsheets/d/10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY/pubhtml';
+locations.scope ='\\BIGGIE\data\';
+locations.data = 'E:\BT\Tracking\';
 % BT's experiments
 if isnumeric(id)
     if  ~isempty(strfind(locations.spreadsheet,'10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY'))
@@ -129,6 +131,12 @@ if isnumeric(id)
         end
     end
 end
+
+%Standardize my BT sets to AA
+start_thresh = 1.8;
+info.graph_limits = [-0.25 5.5];
+info.baseline = 0.75;
+
 
 %% Filtering
 robuststd = @(distr, cutoff) nanstd(distr(distr < (nanmedian(distr)+cutoff*nanstd(distr))));

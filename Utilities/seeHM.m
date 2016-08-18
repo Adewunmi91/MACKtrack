@@ -4,9 +4,9 @@ function  seeHM(varargin)
 %truncate as necessary
 %[metrics,aux, graph, info, measure] = nfkbmetrics(id,varargin)
 if nargin >0
-    [cum_metrics, ~, cum_graph, ~, ~] = nfkbmetrics (varargin {1});
+    [cum_metrics, ~, cum_graph] = nfkbmetrics (varargin {1});
     for i = 2:nargin
-        [metrics, ~, graph, ~,~] = nfkbmetrics(varargin{i});
+        [metrics, ~, graph] = nfkbmetrics(varargin{i});
         cum_graph.var = cat (1,cum_graph.var,graph.var);
         cum_graph.celldata = cat (1, cum_graph.celldata, graph.celldata);
         metrx = fieldnames (cum_metrics);
