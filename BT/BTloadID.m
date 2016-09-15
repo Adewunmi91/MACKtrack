@@ -25,7 +25,7 @@ end
 % Load locations (for images and output data)
 home_folder = mfilename('fullpath');
 slash_idx = strfind(home_folder,filesep);
-load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
+load([home_folder(1:slash_idx(end-1)), 'locations.mat'],'-mat')
 locations.spreadsheet ='https://docs.google.com/spreadsheets/d/10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY/pubhtml';
 locations.scope ='\\BIGGIE\data\';
 locations.data = 'E:\BT\Tracking\';
