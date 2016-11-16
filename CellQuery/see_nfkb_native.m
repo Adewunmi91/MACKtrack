@@ -57,14 +57,20 @@ start_thresh = 2; % Maximal allowable start level above baseline
 info.graph_limits = [-0.25 8]; % Min/max used in graphing-
 dendro = 0;
 colors = setcolors;
+<<<<<<< HEAD
 area_thresh = 90;
 
 % Experiment-specific visualization settings/tweaks (load spreadsheet URL)
+=======
+baseline_length = size(measure.NFkBdimNuclear,2); % Endframe for baseline calculation (default: use entire vector)
+
+>>>>>>> upstream/master
 home_folder = mfilename('fullpath');
 slash_idx = strfind(home_folder,filesep);
 home_folder = home_folder(1:slash_idx(end-1));
 load([home_folder, 'locations.mat'],'-mat')
 
+% Experiment-specific visualization settings/tweaks (set by spreadsheet URL)
 % BT's experiments
 if isnumeric(id)
     if  ~isempty(strfind(locations.spreadsheet,'10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY'))
@@ -79,16 +85,18 @@ if isnumeric(id)
             info.graph_limits = [-0.2 4];
         end
 
-        % c) 0.33ng TNF - delayed activation from slow mixing
+        % c) 0.33ng TNF - delayed stimulation
         if id==290
             measure.NFkBdimNuclear = measure.NFkBdimNuclear(:,4:end);
             measure.NFkBdimCytoplasm = measure.NFkBdimNuclear(:,4:end);
+            baseline_length = size(measure.NFkBdimNuclear,2);
             disp('Adjusted start point for this TNF expmt')
         end
-        % d) 100uM CpG - delayed activation from slow mixing
+        % d) 100uM CpG - delayed stimulation
         if id==283
             measure.NFkBdimNuclear = measure.NFkBdimNuclear(:,4:end);
             measure.NFkBdimCytoplasm = measure.NFkBdimNuclear(:,4:end);
+            baseline_length = size(measure.NFkBdimNuclear,2);
             disp('Adjusted start point for this CpG expmt')
         end
 
@@ -189,6 +197,7 @@ nfkb_smooth = nan(size(nfkb));
 for i = 1:size(nfkb,1)
     nfkb_smooth(i,~isnan(nfkb(i,:))) = medfilt1(nfkb(i,~isnan(nfkb(i,:))),3);
 end
+<<<<<<< HEAD
 
 % If default end frame is specified, use entire vector for baseline calculation. Otherwise use specified baseline.
 if ismember('MinLifetime',p.UsingDefaults)
@@ -196,6 +205,10 @@ if ismember('MinLifetime',p.UsingDefaults)
 else
     nfkb_min = prctile(nfkb_smooth(:,1:MinLifetime),4,2);
 end
+=======
+% If default end frame is specified, use entire vector for baseline calculation. Otherwise, use specified vector.
+nfkb_min = prctile(nfkb_smooth(:,1:baseline_length),2,2);
+>>>>>>> upstream/master
 
 nfkb_baseline = nanmin([nanmin(nfkb(:,1:4),[],2),nfkb_min],[],2);
 nfkb = nfkb - repmat(nfkb_baseline,1,size(nfkb,2));

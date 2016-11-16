@@ -66,13 +66,13 @@ nucSmooth = medfilt2(nucOrig,[parameters.MedianFilterSize, parameters.MedianFilt
 nucEdgeHor = imfilter(nucSmooth,fspecial('sobel') /8,'replicate');
 nucEdgeVert = imfilter(nucSmooth,fspecial('sobel')'/8,'replicate');
 nucEdge = sqrt(nucEdgeHor.^2 + nucEdgeVert.^2);
-levelStart = otsuthresh(nucEdge,false(size(nucEdge)),'none');
+levelStart = quickthresh(nucEdge,false(size(nucEdge)),'none');
 imgSubsetNuc = imdilate(nucEdge>(levelStart), ones(80));
 initialSearch = prctile(nucEdge(:),[5, 99]); % Use 5th and 99th percentile as starting point for nuclei
 [noiseCount1, val1]  = noisecount(nucEdge,~imgSubsetNuc,initialSearch ,64);
 set(handles.figure1,'CurrentAxes',handles.axes5A)
-plot(handles.axes5A,val1,noiseCount1,'LineWidth',3,'Color',handles.orange)
-set(handles.axes5A,'YTick',[])
+plot(handles.axes5A,val1,noiseCount1,'LineWidth',2,'Color',handles.orange)
+set(handles.axes5A,'YTick',[],'FontSize',11)
 % Keep starting value, unless it's way out of 5/95th prctile range.
 nuc_edge = parameters.NucleusEdgeThreshold;
 if (nuc_edge>(initialSearch(2)*2))||(nuc_edge<(initialSearch(1)/2))
@@ -118,12 +118,12 @@ if ~strcmp(parameters.ImageType,'None')
     horizontalEdge = imfilter(cellOrig,fspecial('sobel') /8,'replicate');
     verticalEdge = imfilter(cellOrig,fspecial('sobel')'/8,'replicate');
 	edge_mag = sqrt(horizontalEdge.^2 + verticalEdge.^2);
-	levelStart = otsuthresh(edge_mag,false(size(edge_mag)),'none');
+	levelStart = quickthresh(edge_mag,false(size(edge_mag)),'none');
 	imgSubsetCell = imdilate(edge_mag>(levelStart), ones(80));
 	initialSearch = prctile(edge_mag(:),[5, 95]); % Use 5th and 95th percentile as starting point for cells
 	[noiseCount2, val2]  = noisecount(edge_mag,~imgSubsetCell,initialSearch,64);
-	plot(handles.axes6A,val2,noiseCount2,'LineWidth',3,'Color',[207 79 51]/255)
-	set(handles.axes6A,'YTick',[])
+	plot(handles.axes6A,val2,noiseCount2,'LineWidth',2,'Color',[207 79 51]/255)
+	set(handles.axes6A,'YTick',[],'FontSize',11)
 	% Keep starting value, unless it's way out of 5/95th prctile range.
     cell_edge1 = min(parameters.CellSearchRange);
     if (cell_edge1<(initialSearch(1)/2))
@@ -152,6 +152,10 @@ end
 % Save updated handles
 handles.parameters = parameters;
 handlesOut = handles;
+
+% Temporary: throw loaded images into workspace
+assignin('base','nucOrig',nucOrig)
+
 % ========================================================================================
 
 function [noiseCount, val] =noisecount(edges,dropPixels,searchRange,noiseSize)

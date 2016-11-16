@@ -55,9 +55,11 @@ set(handles.edit5C,'String',num2str(handles.parameters.MinNucleusRadius))
 set(handles.edit5D,'String',num2str(handles.parameters.MaxNucleusRadius))
 set(handles.edit5E,'String',num2str(handles.parameters.Compactness(1)))
 set(handles.edit5F,'String',num2str(handles.parameters.Compactness(2)))
+set(handles.edit5G,'String',num2str(handles.parameters.NuclearSmooth))
+set(handles.edit5H,'String',num2str(handles.parameters.Solidity))
 
-%% - - - - - - - - - Phase/DIC parameters - - - - - - - - - - - - 
-set(handles.popupmenu0,'Value',find(strcmp(handles.parameters.ImageType,{'phase','DIC','None'})));
+%% - - - - - - - - - Cell parameters - - - - - - - - - - - - 
+set(handles.popupmenu0,'Value',find(strcmp(lower(handles.parameters.ImageType),{'phase','dic','fluorescence','none'})));
 setVisibility(handles)
 
 cell_edge1 = min(handles.parameters.CellSearchRange);
@@ -110,8 +112,13 @@ set(handles.edit7D,'String',handles.parameters.MedianFilterSize)
 set(handles.edit7E,'String',handles.parameters.NoiseSize)
 set(handles.edit7G,'String',handles.parameters.MinCellWidth)
 set(handles.edit7H,'String',handles.parameters.FramesPerHour)
-set(handles.edit7J,'String',handles.parameters.ScaledStimulusName)
-
+jumpstring = '[';
+for i = 1:length(handles.parameters.ImageJumps)
+    jumpstring = [jumpstring,num2str(handles.parameters.ImageJumps(i)),','];
+end
+if strcmp(jumpstring(end),','); jumpstring = jumpstring(1:end-1); end
+jumpstring = [jumpstring,']'];
+set(handles.edit7J,'String',jumpstring)
 % Get contents of 'CellMeasure' folder (the one stored with MACKtrack)
 contents = dir([handles.home_folder,filesep, 'CellMeasure']);
 
@@ -127,14 +134,26 @@ end
 contents(dropind) = [];
 handles.parameters.ModuleNames = {contents.name};
 
-% Cycle modules- create associated parameters if necessary
+% Create associated substructures/parameters (if required) for any discovered measurement modules
 for i = 1:length(contents)
     if ~isfield(handles.parameters,contents(i).name)
-        handles.parameters.(contents(i).name).ImageExpr = '--';
-        handles.parameters.(contents(i).name).Use = get(handles.checkbox7A,'Min');
-        handles.parameters.(contents(i).name).Measure = 'Cells';
+       handles.parameters.(contents(i).name) = struct;
     end
 end
+
+check_fields = {'ImageExpr','ImageExpr2','ImageExpr3','Use'};
+default_vals = {'--','--','--',get(handles.checkbox7A,'Min')};
+for i = 1:length(contents)
+    for j = 1:length(check_fields)
+        if ~isfield(handles.parameters.(contents(i).name),check_fields{j})
+            handles.parameters.(contents(i).name).(check_fields{j}) = default_vals{j};
+        end
+    end
+end
+
+
+
+
 % Cycle fields in parameters- if it refers to an old module, drop it.
 testnames = fieldnames(handles.parameters);
 for i = 1:length(testnames)
@@ -147,13 +166,12 @@ for i = 1:length(testnames)
      end
 end
 
-% Initialize GUI values
-if ~isfield(handles.parameters.(contents(1).name),'ImageExpr2') 
-    handles.parameters.(contents(1).name).ImageExpr2 = '--';
-end
+% Initialize/check measurement values in GUI 
 set(handles.listbox7,'String',handles.parameters.ModuleNames)
 set(handles.edit7K,'String',handles.parameters.(contents(1).name).ImageExpr)
 set(handles.edit7L,'String',handles.parameters.(contents(1).name).ImageExpr2)
+set(handles.edit7M,'String',handles.parameters.(contents(1).name).ImageExpr3)
+
 set(handles.checkbox7A, 'Value', handles.parameters.(contents(1).name).Use);
 
 
@@ -181,8 +199,35 @@ try
 catch ME
     set(handles.text7L_2,'ForegroundColor',handles.gray)
 end
+try
+    filePath = [handles.locations.scope, handles.parameters.ImagePath,eval(handles.parameters.(contents(1).name).ImageExpr3)];
+    if exist(filePath,'file')
+        set(handles.text7M_2,'ForegroundColor',handles.blue)    
+    else
+        set(handles.text7M_2,'ForegroundColor',handles.gray)
+    end
+catch ME
+    set(handles.text7M_2,'ForegroundColor',handles.gray)
+end
 
-% Resave parameters in place to reflect new updated values
+
+% Get flatfield objects and populate listbox accordingly
+flatfields = {};
+if isfield(handles.parameters,'Flatfield')
+    for i = 1:length(handles.parameters.Flatfield)
+        flatfields = cat(1,flatfields,{['Flatfield{',num2str(i),...
+            '}(',num2str(size(handles.parameters.Flatfield{i},1)),' x ',...
+            num2str(size(handles.parameters.Flatfield{i},1)),')']});
+    end
+end
+set(handles.listbox7B,'String',flatfields)
+
+
+
+
+
+
+%% Resave parameters in place to reflect new updated values
 load(paramfile,'-mat') % Reload original parameters for comparison
 if ~isequal(handles.parameters,parameters)
     disp('Saving automatically-updated parameters')

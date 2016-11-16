@@ -1,12 +1,12 @@
 function see3D (id, varargin)
 
-[metrics, fourier, graph, info, ~] = nfkbmetrics (id);
+[metrics, ~, graph] = nfkbmetrics (id);
 
 if (nargin > 1)
     name = varargin{1};
 else
-    name = strsplit(info.name, '_');
-    name = name{2};
+  %  name = strsplit(info.name, '_');
+   % name = name{2};
 %     name2 = strsplit (info2.name,'_');
 %     name2 = name2 {2};
 %mean

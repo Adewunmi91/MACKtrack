@@ -26,9 +26,9 @@ end
 home_folder = mfilename('fullpath');
 slash_idx = strfind(home_folder,filesep);
 load([home_folder(1:slash_idx(end-1)), 'locations.mat'],'-mat')
-locations.spreadsheet ='https://docs.google.com/spreadsheets/d/10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY/pubhtml';
-locations.scope ='\\BIGGIE\data\';
-locations.data = 'E:\BT\Tracking\';
+locations.spreadsheet ='https://docs.google.com/spreadsheets/d/14UW3iOBmzfZVLBu5KIS1MNqAR4sCPGNHdGmIKq4UgsM/pubhtml';
+locations.scope ='\\BIGGIE\data\backed_up\brooks\Images(2015)';
+locations.data = 'E:\BT\';
 % Find/load AllMeasurements.mat - a full file path can be specfied, or an
 % ID corresponding to an entry on the ScopeRuns spreadsheet.
 tic
