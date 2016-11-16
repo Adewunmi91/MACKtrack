@@ -57,6 +57,7 @@ start_thresh = 2; % Maximal allowable start level above baseline
 info.graph_limits = [-0.25 8]; % Min/max used in graphing-
 dendro = 0;
 colors = setcolors;
+area_thresh = 90;
 
 % Experiment-specific visualization settings/tweaks (load spreadsheet URL)
 home_folder = mfilename('fullpath');
@@ -122,11 +123,53 @@ if isnumeric(id)
         if ismember(id,[164:169, 171:178, 179:186, 188:190, 192:194,196:198, 200:205, 271, 296:297, 434:439, 464:471]);
             start_thresh = 10;
         end
-        %weak nuclei 
+        
+        %LCCM differentiated macrophages--smaller
+        %if ismember(id,564:569);
+         %   area_thresh = 75;
+        %end
+        %weak nuclei
         if ismember(id, 0)
             measure.NFkBdimNuclear = measure.NFkBdimNuclear_erode;
             disp('(Using eroded nuclei)')
         end
+        
+        %3T3s
+        if ismember (id, 557:560)
+            info.graph_limits = [-0.1 4];
+            info.baseline = 1.0;
+            start_thresh = 0.5;
+            measure.NFkBdimNuclear = measure.NFkBdimNuclear_erode;
+        end
+        
+        if ismember (id, [539:543, 552:553])
+        end
+        if ismember (id, [243:255, 284: 291,316:339,458:463, 484, 485])
+           area_thresh = 10;
+        end
+        
+        %Small cells
+            %Immature BMDMs
+        if ismember (id, 464:471)
+           area_thresh = 10;
+        end 
+    %BMDMs differentiated in non ES FBS 
+       if ismember (id, 513:518)
+          %area_thresh = 90;
+          area_thresh = 10;
+       end
+       
+       %DMSO macrophages
+        if ismember (id, [539:543, 552:553])
+          %area_thresh = 90;
+          area_thresh = 10;
+          disp ('Area Threshold dropped to 37');
+          MinLifetime = 100;    
+          start_thresh = 4;
+          %info.baseline = 0.75;
+          %info.graph_limits = [-0.25 4.5];
+        end      
+            
     end
 end
 
@@ -146,6 +189,7 @@ nfkb_smooth = nan(size(nfkb));
 for i = 1:size(nfkb,1)
     nfkb_smooth(i,~isnan(nfkb(i,:))) = medfilt1(nfkb(i,~isnan(nfkb(i,:))),3);
 end
+
 % If default end frame is specified, use entire vector for baseline calculation. Otherwise use specified baseline.
 if ismember('MinLifetime',p.UsingDefaults)
     nfkb_min = prctile(nfkb_smooth,2,2);
@@ -171,22 +215,11 @@ keep = max(droprows,[],2) == 0;
 start_lvl = nanmin(nfkb(keep,1:3),[],2);
 nuc_lvl = nanmedian(measure.MeanIntensityNuc(keep,1:31),2);
 nuc_thresh = nanmedian(nuc_lvl)+2.5*robuststd(nuc_lvl(:),2);
-area_thresh = 90;
 
-%Drop area threshold for peritoneal macrophages 
-    %AA's experiments
-if isnumeric(id)
-    if ismember (id, [243:255, 284: 291,316:339,458:463, 484, 485])
-           area_thresh = 10;
-    end    
-    %BMDMs  not fully grown
-    if ismember (id, [464:471])
-           area_thresh = 10;
-    end 
-end
+
+
 droprows =  [droprows, prctile(nfkb(:,1:8),18.75,2) > start_thresh];
 droprows =  [droprows, nanmedian(measure.MeanIntensityNuc(:,1:31),2) > nuc_thresh];
-
 droprows =  [droprows, nanmedian(measure.Area,2) < area_thresh];
 
 % Show some filter information
