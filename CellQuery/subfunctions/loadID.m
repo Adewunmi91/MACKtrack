@@ -123,8 +123,7 @@ try
                 warning on MATLAB:nearlySingularMatrix
                 % Apply background correction
                 img = reshape((double(img(:) - X*pStar)),size(img));
-<<<<<<< HEAD
-=======
+
                 img = img-min(img(:)); % Set minimum to zero
                 [~,p.adj_distr(:,ind)] = modebalance(img,1,bit_depth,'measure');
             end
@@ -157,7 +156,7 @@ try
                 warning on MATLAB:nearlySingularMatrix
                 % Apply background correction
                 img = reshape((double(img(:) - X*pStar)),size(img));
->>>>>>> upstream/master
+
                 img = img-min(img(:)); % Set minimum to zero
                 [~,p.adj_distr(:,ind)] = modebalance(img,1,bit_depth,'measure');
             end
@@ -166,13 +165,9 @@ try
         end
     end
 catch me
-<<<<<<< HEAD
-    warning('Couldn''t find original images to add background distributions - these may be required for some visualization functions.');
-    getReport(me)
-=======
     disp(me)
     warning('Couldn''t find original images to measure background distributions - these may be required for some visualization functions.');
->>>>>>> upstream/master
+
 end
 
 
