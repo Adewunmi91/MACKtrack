@@ -57,14 +57,14 @@ imfo = imfinfo([locations.scope,parameters.ImagePath,eval(parameters.NucleusExpr
 bit_depth = imfo.BitDepth;
 
 % Make save directories/image stacks
-outputDirectory = [locations.data,filesep, parameters.SaveDirectory,filesep,'xy',num2str(xyPos),filesep];
+outputDirectory = ffp([locations.data,filesep, parameters.SaveDirectory,filesep,'xy',num2str(xyPos),filesep]);
 mkdir(outputDirectory)
 mkdir([outputDirectory,'NuclearLabels'])    
 mkdir([outputDirectory,'CellLabels'])
 mkdir([outputDirectory,'SegmentedImages'])
 
 % Make default shift (for tracking cells across image jumps)
-parameters.ImageOffset = [0 0];
+parameters.ImageOffset = repmat({[0 0]},1,parameters.StackSize);
 
 % Check to make sure time vector is long enough
 if length(parameters.TimeRange) < parameters.StackSize
@@ -94,15 +94,33 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         % Load in images
         tic
         nucName1 = eval(parameters.NucleusExpr);
-        images.nuc = checkread([locations.scope,parameters.ImagePath,nucName1],bit_depth,1,parameters.debug);
+        images.nuc = checkread(ffp([locations.scope,parameters.ImagePath,nucName1]),bit_depth,1,parameters.debug);
         if ~strcmpi(parameters.ImageType,'none')
             cellName1 = eval(parameters.CellExpr);
-            images.cell = checkread([locations.scope,parameters.ImagePath,cellName1],bit_depth,1,parameters.debug);
+            images.cell = checkread(ffp([locations.scope,parameters.ImagePath,cellName1]),bit_depth,1,parameters.debug);
         else
             images.cell = images.nuc;
         end
         tocs.ImageLoading = toc;
 
+        
+        % Calculate image jump, if parameters require it.
+        if ismember(parameters.TimeRange(cycle), parameters.ImageJumps)
+            j =  parameters.TimeRange(cycle-1);
+            if strcmpi(parameters.ImageType,'none')
+                prev_name = eval(parameters.NucleusExpr);
+            else
+                prev_name = eval(parameters.CellExpr);
+            end
+            prev_img = checkread([locations.scope,parameters.ImagePath,prev_name],bit_depth,1,parameters.debug);
+            new_offset = parameters.ImageOffset{end}+calculatejump(prev_img,images.cell);
+            disp(['Jump @ frame ',num2str(parameters.TimeRange(cycle)),'. Curr. offset: [',num2str(new_offset),']'])       
+        else
+            new_offset = parameters.ImageOffset{end};
+        end
+        parameters.ImageOffset = [parameters.ImageOffset(2:end),{new_offset}];
+            
+        
         % CELL MASKING on phase contrast/DIC image
         tic
         maskfn = str2func([fnstem,'ID']);
@@ -150,6 +168,7 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         tocs.ImageLoading = 0; tocs.CellMasking = 0; tocs.NucMasking = 0; tocs.CheckCells = 0; % zero out unused tics   
     end
    
+    
    if cycle >= parameters.StackSize
        % Bookkeeping (indicies), initialization for tracking 
         saveCycle = cycle-parameters.StackSize+1; % Value assigned to CellData and tracked label matricies
@@ -168,16 +187,6 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         if cycle == parameters.StackSize
             [CellData, future] = initializeCellData(future,parameters);
         else
-            % Calculate image jump, if required.
-            parameters.ImageOffset_old = parameters.ImageOffset;
-            if (cycle<=length(parameters.TimeRange)) && ismember(parameters.TimeRange(cycle), parameters.ImageJumps)
-                j =  parameters.TimeRange(cycle-1);
-                nucName1 = eval(parameters.NucleusExpr);
-                old_nuc = checkread([locations.scope,parameters.ImagePath,nucName1],bit_depth,1,parameters.debug);
-                parameters.ImageOffset = parameters.ImageOffset+calculatejump(old_nuc,images.nuc);
-                disp(['Jump @ frame ',num2str(parameters.TimeRange(cycle)),'. Curr. offset: [',num2str(parameters.ImageOffset),']'])         
-            end
-            
             trackstring = [trackstring,'\n- - - Cycle ',num2str(saveCycle),' - - -\n'];
             [tmpstring, CellData, future] =  evalc('trackNuclei(future, CellData, saveCycle, parameters)');
             trackstring = [trackstring,tmpstring];
@@ -189,7 +198,8 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         segmentfn = str2func([fnstem,'Segment']);
         present = segmentfn(future(1), images.bottom, parameters);
         tocs.Segmentation = toc;
-
+        present.ImageOffset = parameters.ImageOffset{1};
+       
         % MEMORY CHECKING ("past" queue)
         tic
         if ~exist('past','var')
@@ -227,12 +237,21 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         if strcmpi(parameters.ImageType,'phase')|| strcmpi(parameters.ImageType,'dic') % BRIGHTFIELD MODALITIES
             saturation_val = [-2 4];
             alpha = 0.30;
-        else % FLUORESCENCE MODALITIES - SNR varies dramatically, so guess a display range from img #1.
+        else % FLUORESCENCE MODALITIES - SNR varies between conditions, so guess a display range from an early img
             if ~exist('saturation_val','var')
-                [~,dist1] = modebalance(past(1).img_straight,0, bit_depth,'measure');
-                saturation_val = [-3 (prctile(past(1).img_straight(:),95)-dist1(1))/dist1(2)];
+                tmp1 = images.cell;
+                tmp1(tmp1==min(tmp1(:))) = [];
+                tmp1(tmp1==max(tmp1(:))) = [];
+                tmp1 = modebalance(tmp1,0, bit_depth,'display');               
+                % Non-confluent case - set low saturation @ 3xS.D. below bg level
+                if parameters.Confluence ~= 1
+                    saturation_val = [-3 prctile(tmp1(:),95)];
+                    alpha = 0.4;
+                else % Confluent case: unimodal distribution is foreground - use a different lower limit.
+                    saturation_val = [-4 prctile(tmp1(:),90)];
+                    alpha = 0.55;
+                end
             end
-            alpha = 0.4;
         end
         saveFig(images.bottom,CellLabel,NuclearLabel, [],bit_depth,...
             [outputDirectory,'SegmentedImages',filesep,'Segmentation-',numseq(saveCycle,4),'.jpg'],  ...
@@ -257,7 +276,8 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         name1 = name1(seps+1:end);
     end
     str = '\n- - - - - - - - - - - - - - -';
-    if cycle < parameters.StackSize 
+    name1(strfind(name1,'\')) = '/';
+    if cycle < parameters.StackSize
         str = sprintf([str, '\n', name1, ' - XY ', num2str(xyPos),', Fill Cycle ', num2str(cycle)]);
     else
         str = sprintf([str, '\n', name1, ' - XY ', num2str(xyPos),', Save Cycle ', num2str(saveCycle)]);

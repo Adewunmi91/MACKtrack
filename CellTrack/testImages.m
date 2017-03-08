@@ -15,13 +15,13 @@ j = min(p.TimeRange);
 p.i = i; p.j = j;
 
 % Load all base images
-imfo = imfinfo([locations.scope,p.ImagePath,eval(p.NucleusExpr)]);
+imfo = imfinfo(ffp([locations.scope,p.ImagePath,filesep,eval(p.NucleusExpr)]));
 bit_depth = imfo.BitDepth;
 
 images = struct;
-images.nucleus = checkread([locations.scope,p.ImagePath,eval(p.NucleusExpr)],bit_depth);
+images.nucleus = checkread(ffp([locations.scope,p.ImagePath,filesep,eval(p.NucleusExpr)]),bit_depth);
 if ~strcmpi(p.ImageType,'none')
-    images.cell = checkread([locations.scope,p.ImagePath,eval(p.CellExpr)],bit_depth);
+    images.cell = checkread(ffp([locations.scope,p.ImagePath,filesep,eval(p.CellExpr)]),bit_depth);
 else
     images.cell = images.nucleus;
 end
@@ -99,6 +99,7 @@ handles.diagnostics.cell = diag_tmp;
 tocs.CellMasking = toc;
 
 % - - - - 1st label: make label matrix from nuclear image - - - -
+tic
 [data_tmp, diag_tmp] = nucleusID(images.nucleus,p,data);
 % Save information
 handles.diagnostics.nuclei = diag_tmp;

@@ -28,38 +28,44 @@ if nargin<3
     end
 end
 
-
 % Load data; set parameters
 [measure, info] = loadID(id);
 info.parameters.FramesPerHour = 6; % 10 min between frames
 info.Module = 'ppargModule';
-t_max = (size(measure.MeanPPARg,2)-1)/(info.parameters.FramesPerHour/60); % Number of hours to display in graphs
-info.graph_limits = [400 1000];
+t_max = (size(measure.MedianPPARg,2)-1)/(info.parameters.FramesPerHour/60); % Number of hours to display in graphs
 
 
 all_pparg = measure.MeanPPARg;
+info.graph_limits = prctile(all_pparg(~isnan(all_pparg)),[3 97]);
 
-% Add parent trajectories to children
+
+
+% Add parent trajectories to children - record time/index of divisions.
+graph.var_all = all_pparg;
 find_parent = @(row) find((info.CellData(:,1) == row(1)) & (info.CellData(:,2)== row(5)));
-for i = 1:size(all_pparg,1)
-    if info.CellData(i,5)>0
-        all_pparg(i,1:info.CellData(i,3)) = all_pparg(find_parent(info.CellData(i,:)),1:info.CellData(i,3));
+graph.divisions = [];
+graph.divide_pts = false(size(graph.var_all));
+for i = 1:size(graph.var_all,1)
+    if info.CellData(i,5)>0      
+        graph.var_all(i,1:info.CellData(i,3)) = graph.var_all(find_parent(info.CellData(i,:)),1:info.CellData(i,3));
+        graph.divide_pts(find_parent(info.CellData(i,:)),info.CellData(i,3)) = 1;
+        graph.divide_pts(i,1:info.CellData(i,3)) = graph.divide_pts(find_parent(info.CellData(i,:)),1:info.CellData(i,3));
+        graph.divisions = cat(1,graph.divisions,[i, info.CellData(i,3)]);
     end
 end
-
-
+all_pparg = graph.var_all;
 
 %% Filtering
-droprows = zeros(size(measure.MeanPPARg,1),1);
-%droprows = [droprows, sum(isnan(measure.MeanIntensityNuc(:,1:4)),2)>2]; % Cells existing @ expt start
-droprows = [droprows, sum(isnan(all_pparg(:,1:400)),2)>15]; % Long-lived cells
+droprows = zeros(size(all_pparg,1),1);
+droprows = [droprows, sum(isnan(all_pparg(:,end-3:end)),2)>2]; % Cells existing @ expt end
+droprows = [droprows, sum(isnan(all_pparg),2)>50]; % Long-lived cells
 info.keep = max(droprows,[],2) == 0;
 
 
 %% Outputs
 % Extract measurement and apply filtering
 all_pparg = all_pparg(info.keep,:);
-
+graph.divide_pts = graph.divide_pts(info.keep,:);
 
 graph.var = all_pparg;
 

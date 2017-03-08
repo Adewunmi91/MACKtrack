@@ -32,8 +32,8 @@ for frm = 1:length(queue_in)
 
     % Make 1st entry in labeldata
     labeldata(frm).obj = (1:length(props))';
-    labeldata(frm).centroidx = vect_centroidx';
-    labeldata(frm).centroidy = vect_centroidy';
+    labeldata(frm).centroidx = vect_centroidx' - p.ImageOffset{frm}(2);
+    labeldata(frm).centroidy = vect_centroidy'-p.ImageOffset{frm}(1);
     labeldata(frm).area = vect_area';
     labeldata(frm).perimeter = vect_perimeter';    
     labeldata(frm).obj(labeldata(frm).area==0) = 0;
@@ -54,13 +54,14 @@ for i = 1:(size(blocks,1)-1)
 end
 
 % Rank links on distance travelled and similarity (average of perimeter/area changes)
-while ~isempty(links)
-    [~,tmp] = sort(links(:,5),'ascend');
-    [~,rnk1] = sort(tmp);
-    [~,tmp] = sort(links(:,6),'ascend');
-    [~,rnk2] = sort(tmp);
+if ~isempty(links)
+    [~,~,rnk1] = unique(links(:,5));
+    [~,~,rnk2] = unique(links(:,6));
     [~,resolve_order] = sort((rnk1*2)+rnk2,'ascend');
     links = links(resolve_order,:);
+end
+% Resolve links until list is empty
+while ~isempty(links)
     [links,blocks] = resolvelink(blocks,links,labeldata,p,verbose);   
 end
 

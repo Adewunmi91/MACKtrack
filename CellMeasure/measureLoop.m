@@ -76,14 +76,14 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
         
         j = parameters.TimeRange(iter);
         
-
         % Cycle through module names- construct name, load aux image, and call
         for m = 1:length(parameters.ModuleNames)
             ModuleData.name = parameters.ModuleNames{m};
             ModuleData.iter = iter;
             ModuleData.i = i;
             ModuleData.j = j;
-            AuxImages = cell(1,2);
+            ModuleData.AuxName = cell(1,3);
+            AuxImages = cell(size(ModuleData.AuxName));
             if  parameters.(ModuleData.name).Use == 1;                
                 % Check/load/correct auxiliary images
                 for aux = 1:3
@@ -94,7 +94,7 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
                         curr_expr = parameters.(ModuleData.name).(['ImageExpr',num2str(aux)]);
                     end
                     try
-                        curr_name = [parameters.locations.scope, filesep,parameters.ImagePath, filesep, eval(curr_expr)];
+                        curr_name = [parameters.locations.scope, filesep,parameters.ImagePath, filesep, eval(curr_expr)]; 
                     catch
                         curr_name = '--';
                     end
@@ -104,7 +104,8 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
                             imfo = imfinfo(curr_name);
                             ModuleData.BitDepth = imfo.BitDepth;
                         end
-                        AuxImages{aux} = checkread(curr_name,ModuleData.BitDepth);   
+                        AuxImages{aux} = checkread(curr_name,ModuleData.BitDepth); 
+                        ModuleData.AuxName{aux} = curr_name;
                     end
                 end
                 
@@ -128,7 +129,7 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
     end
     
     % Save CellMeasurements
-    save([parameters.XYDir,'CellMeasurements.mat'], 'CellMeasurements')
+    save([parameters.XYDir,'CellMeasurements.mat'], 'CellMeasurements','-v7.3')
 else
     disp(['Skipping XY ',num2str(xy)])
 end

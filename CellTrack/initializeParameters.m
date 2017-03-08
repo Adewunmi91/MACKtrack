@@ -22,12 +22,27 @@ for i = 1:length(oldfields)
 end
 
 % Loading/saving expressions and directories
-set(handles.edit1A,'String',handles.parameters.ImagePath)
-set(handles.edit2A,'String',handles.parameters.NucleusExpr)
-set(handles.edit2B,'String',handles.parameters.CellExpr)
+set(handles.edit1A,'String',ffp(handles.parameters.ImagePath))
 set(handles.edit2C,'String',handles.parameters.XYExpr)
 set(handles.edit2D,'String',handles.parameters.TimeExpr)
 set(handles.edit3A,'String',handles.parameters.SaveDirectory)
+
+if ~isfield(handles.parameters,'isScreen') || handles.parameters.isScreen == 0
+    set(handles.edit2A,'String',handles.parameters.NucleusExpr)
+    set(handles.edit2B,'String',handles.parameters.CellExpr)
+else
+    set(handles.edit2A,'String',handles.parameters.NucleusMatch)
+    set(handles.edit2B,'String',handles.parameters.CellMatch)
+end
+
+set(handles.popupmenu0B,'value',1+handles.parameters.isScreen);
+if handles.parameters.isScreen
+    set(handles.edit2C,'ForegroundColor',handles.gray)
+    set(handles.edit2D,'ForegroundColor',handles.gray)
+else
+    set(handles.edit2C,'ForegroundColor',[0 0 0])
+    set(handles.edit2D,'ForegroundColor',[0 0 0])
+end
 
 %% - - - - - - - - - Nuclear parameters - - - - - - - - - - - - 
 nuc_edge = handles.parameters.NucleusEdgeThreshold;
@@ -53,10 +68,19 @@ end
 set(handles.edit5B,'String',num2str(handles.parameters.WeakObjectCutoff))
 set(handles.edit5C,'String',num2str(handles.parameters.MinNucleusRadius))
 set(handles.edit5D,'String',num2str(handles.parameters.MaxNucleusRadius))
-set(handles.edit5E,'String',num2str(handles.parameters.Compactness(1)))
-set(handles.edit5F,'String',num2str(handles.parameters.Compactness(2)))
+set(handles.popupmenu5A,'Value', find(strcmpi(get(handles.popupmenu5A,'String'),handles.parameters.ShapeDef),1,'first'));
+
+set(handles.text5E,'String', [handles.parameters.ShapeDef,':']);
+set(handles.edit5E,'String', num2str(handles.parameters.(handles.parameters.ShapeDef)(1)));
+if length(handles.parameters.(handles.parameters.ShapeDef))<2
+    val = handles.parameters.(handles.parameters.ShapeDef);
+    handles.parameters.(handles.parameters.ShapeDef) = [val val];
+end
+set(handles.edit5F,'String', num2str(handles.parameters.(handles.parameters.ShapeDef)(2)));
+
 set(handles.edit5G,'String',num2str(handles.parameters.NuclearSmooth))
-set(handles.edit5H,'String',num2str(handles.parameters.Solidity))
+set(handles.edit5H,'String',num2str(handles.parameters.NuclearInflection))
+
 
 %% - - - - - - - - - Cell parameters - - - - - - - - - - - - 
 set(handles.popupmenu0,'Value',find(strcmp(lower(handles.parameters.ImageType),{'phase','dic','fluorescence','none'})));
@@ -103,6 +127,7 @@ for i = 1:length(handles.parameters.GaussSizes)
 end
 gaussstring(end) = ']';
 set(handles.edit6J,'String',gaussstring)
+set(handles.popupmenu6C,'Value',handles.parameters.Confluence+1)
 
 
 %% - - - - - - - - - - Other parameters - - - - - - - - - - - - - -
@@ -179,7 +204,7 @@ set(handles.checkbox7A, 'Value', handles.parameters.(contents(1).name).Use);
 try
     i = min(handles.parameters.XYRange);
     j = min(handles.parameters.TimeRange);
-    filePath = [handles.locations.scope, handles.parameters.ImagePath,eval(handles.parameters.(contents(1).name).ImageExpr)];
+    filePath = ffp([handles.locations.scope, handles.parameters.ImagePath,eval(handles.parameters.(contents(1).name).ImageExpr)]);
     if exist(filePath,'file')
         set(handles.text7K_2,'ForegroundColor',handles.blue)    
     else
@@ -221,7 +246,23 @@ if isfield(handles.parameters,'Flatfield')
     end
 end
 set(handles.listbox7B,'String',flatfields)
+set(handles.listbox7B,'Value',1)
 
+
+% (Also update popupup menus)
+if handles.parameters.CellFF > length(flatfields)
+    handles.parameters.CellFF = 0;
+    set(handles.popupmenu6A,'Value',0);
+end
+set(handles.popupmenu6B,'String',cat(1,{'None'},flatfields));
+if handles.parameters.NucleusFF > length(flatfields)
+    handles.parameters.NucleusFF = 0;
+    set(handles.popupmenu6B,'Value',0);
+end
+set(handles.popupmenu6A,'String',cat(1,{'None'},flatfields));
+set(handles.popupmenu6A,'Value',handles.parameters.NucleusFF+1)
+set(handles.popupmenu6B,'Value',handles.parameters.CellFF+1)
+guidata(handles.figure1,handles)
 
 
 

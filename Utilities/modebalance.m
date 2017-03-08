@@ -100,9 +100,16 @@ try
     % Turn convergence warning back on
     warning('on','stats:gmdistribution:FailedToConverge')
 
+    test_mu = obj.mu;
+
+    % Discard any subpopulation <10% of total pixels
+    if num_modes>1
+        invalids = obj.ComponentProportion<0.10;
+        test_mu(invalids) = inf;
+    end
     
     % Get the minimum mean and its standard deviation (background) and normalize that to [0,1]
-    mu_ind = find(obj.mu == min(obj.mu));
+    mu_ind = find(test_mu == min(test_mu));
     background_mu = obj.mu(mu_ind);
     if size(obj.Sigma,1) > 1
         background_sigma = sqrt(obj.Sigma(mu_ind,mu_ind));

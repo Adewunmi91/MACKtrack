@@ -22,14 +22,14 @@ margin = 20; % allowable distance to nearest edge of screen
 
 % Get primary monitor position - we'll put everything on this monitor, working left-to-right
 all_monitors = get(0, 'MonitorPositions');
-idx = 1;
+idx = find(all_monitors(:,1)==1,1,'first');
 monitor_pos = all_monitors(idx,:);
 while min(monitor_pos(3:4)) < 512
     try
         idx = idx+1;
         monitor_pos = all_monitors(idx,:);
     catch me
-        error('All your screens are too small for figure display(< 512x512px)')
+        error('All your screens are too small for figure display (< 512x512px)')
     end
 end
 
@@ -94,4 +94,16 @@ if (fig_origin(2)+y_height) > (monitor_pos(4)-margin)
 end
 
 pos = [fig_origin,x_width,y_height];
+
+% Make sure figure doesn't go off top/side of screen
+padx = 5; % Window border width
+pady = 80; % toolbar height
+if (pos(1) + pos(3)) > (monitor_pos(3)-padx)
+    pos(1) = monitor_pos(3)-pos(3)-padx;
+end
+if (pos(2) + pos(4)) > (monitor_pos(4)-pady)
+    pos(2) = monitor_pos(4)-pos(4)-pady;
+end
+
+
 
