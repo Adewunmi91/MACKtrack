@@ -177,6 +177,15 @@ if isnumeric(id)
           %info.baseline = 0.75;
           %info.graph_limits = [-0.25 4.5];
         end      
+        %TNF KO Data set
+         if ismember (id, 472:473)
+             start_thresh = 4;
+             MinLifetime = 80;               
+         end
+         if ismember (id, [394:401])
+             start_thresh = 4;
+             MinLifetime = 80;               
+         end
             
     end
 end
@@ -228,7 +237,7 @@ nuc_thresh = nanmedian(nuc_lvl)+2.5*robuststd(nuc_lvl(:),2);
 droprows =  [droprows, prctile(nfkb(:,1:8),18.75,2) > start_thresh];
 droprows =  [droprows, nanmedian(measure.MeanIntensityNuc(:,1:31),2) > nuc_thresh];
 droprows =  [droprows, nanmedian(measure.Area,2) < area_thresh];
-
+info.dropped = droprows;
 % Show some filter information
 if verbose_flag
     filter_str = {'didn''t exist @ start', 'short-lived cells', 'NFkB<background',...
