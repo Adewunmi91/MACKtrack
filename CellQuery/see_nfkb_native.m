@@ -186,7 +186,18 @@ if isnumeric(id)
              start_thresh = 4;
              MinLifetime = 80;               
          end
+         
+         %imaged with 0.63 x cmount left scope
+         if ismember (id, 613:616)
+            area_thresh = 50;
             
+        if ismember (id, 607:612)
+            MinLifetime = 80;
+           start_thresh = 1;
+            
+        end
+                  
+         end
     end
 end
 
