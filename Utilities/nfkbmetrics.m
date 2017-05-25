@@ -14,6 +14,7 @@ function [metrics,aux, graph, info, measure] = nfkbmetrics(id,varargin)
 % id             filename or experiment ID (from Google Spreadsheet specified in "locations.mat")
 %
 % INPUT PARAMETERS (optional; specify with name-value pairs)
+% 'Baseline' 
 % 'Display'         'on' or 'off' - show graphs (default: process data only; no graphs)
 % 'Verbose'          'on' or 'off' - show verbose output
 % 'MinLifetime'      final frame used to filter for long-lived cells (default = 100)
@@ -33,12 +34,13 @@ valid_id = @(x) assert((isnumeric(x)&&length(x)==1)||exist(x,'file'),...
     'ID input must be spreadsheet ID or full file path');
 addRequired(p,'id',valid_id);
 % Optional parameters
-addParameter(p,'Baseline', 1.85, @isnumeric);
+%addParameter(p,'Baseline', 1.85, @isnumeric);
+addParameter(p,'Baseline', 0.75, @isnumeric);
 addParameter(p,'MinLifetime',100, @isnumeric);
 addParameter(p,'TrimFrame',255, @isnumeric);
 valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
     'Convection correction parameter must be single integer >= 0');
-addParameter(p,'ConvectionShift',0, valid_conv);
+addParameter(p,'ConvectionShift',1, valid_conv);
 parse(p,id, varargin{:})
 
 %% PARAMETETERS for finding off times - chosen using 'scan_off_params.m'
@@ -57,6 +59,11 @@ if ~ismember('MinLifetime',p.UsingDefaults)
 else
    [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',p.Results.ConvectionShift);
 end
+
+if ~ismember ('baseline',p.UsingDefaults)
+    baseline = info.baseline;
+end
+
 %%
 % 1) basic time series. Interpolate over "normal" interval (12 frames per hr) if required
 t = min(graph.t):1/12:max(graph.t);
