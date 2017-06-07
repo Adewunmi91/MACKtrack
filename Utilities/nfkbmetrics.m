@@ -54,6 +54,8 @@ if ~ismember('MinLifetime',p.UsingDefaults)
                             'ConvectionShift',p.Results.ConvectionShift);
    graph.var = graph.var(:,1:p.Results.MinLifetime);
    graph.t = graph.t(1:size(graph.var,2));
+   graph.opt = maketicks(graph.t,info.graph_limits,0);
+   graph.opt.Name= 'NF\kappaB Activation';
 else
    [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',p.Results.ConvectionShift);
 end
