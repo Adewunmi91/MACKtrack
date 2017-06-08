@@ -208,9 +208,24 @@ if isnumeric(id)
              info.baseline = 1.8;
 %           %area_thresh = 10;
          end
+<<<<<<< HEAD
     
         
         
+=======
+         
+         %imaged with 0.63 x cmount left scope
+         if ismember (id, 613:616)
+            area_thresh = 50;
+            
+        if ismember (id, 607:612)
+            MinLifetime = 80;
+           start_thresh = 1;
+            
+        end
+                  
+         end
+>>>>>>> origin/master
     end
 end
 
@@ -303,11 +318,11 @@ graph.celldata = info.CellData(info.keep,:);
 
 % Correct for XY positions that activate late
 [graph.var, shift_xy] = alignTrajectories(nfkb, graph.celldata, 60, max_shift);
-if dendro
-    [graph.order, graph.dendro.links] = hierarchial(graph.var(:,1:min([size(graph.var,2),150])),0);
-else
-    [~,graph.order] = sort(nansum(graph.var(:,1:min([size(graph.var,2),150])),2),'descend');
-end
+% if dendro
+%     [graph.order, graph.dendro.links] = hierarchial(graph.var(:,1:min([size(graph.var,2),150])),0);
+% else
+%     [~,graph.order] = sort(nansum(graph.var(:,1:min([size(graph.var,2),150])),2),'descend');
+% end
 if verbose_flag 
     for i = 1:length(shift_xy)
         disp(['xy ',num2str(i),' shift : ',num2str(shift_xy(i))])
@@ -318,7 +333,7 @@ graph.shift = shift_xy;
 graph.t = 0:(1/info.parameters.FramesPerHour):48;
 graph.t = graph.t(1:min([length(graph.t),size(graph.var,2)]));
 graph.opt = maketicks(graph.t,info.graph_limits,0);
-graph.opt.Name = 'NFkB Activation'; 
+graph.opt.Name = 'NF\kappaB Activation'; 
 
 
 %% Graphing
