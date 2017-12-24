@@ -35,9 +35,11 @@ valid_id = @(x) assert((isnumeric(x)&&length(x)==1)||exist(x,'file'),...
 addRequired(p,'id',valid_id);
 % Optional parameters
 %addParameter(p,'Baseline', 1.85, @isnumeric);
-addParameter(p,'Baseline', 0.75, @isnumeric);
-addParameter(p,'MinLifetime',100, @isnumeric);
-addParameter(p,'TrimFrame',255, @isnumeric);
+addParameter(p,'Baseline', 1.0, @isnumeric);
+addParameter(p, 'start_thresh', 1.5, @isnumeric); 
+addParameter(p, 'area_thresh', 90, @isnumeric); 
+addParameter(p,'MinLifetime',97, @isnumeric);
+addParameter(p,'TrimFrame',139, @isnumeric);
 valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
     'Convection correction parameter must be single integer >= 0');
 addParameter(p,'ConvectionShift',1, valid_conv);
@@ -51,16 +53,25 @@ cutoff_time = 4; % time to look for cell activity before declaring it "off" (hrs
 off_pad = 12; % Signal time added to trajectory in  FFT calculation (keeps transients from being recorded as osc.)
 
 %% INITIALIZATION. Load and process data. Interpolate time series, calculate deriv/integral approximations
+start_thresh = p.Results.start_thresh; 
+area_thresh = p.Results.area_thresh; 
+min_lifetime = p.Results.MinLifetime; 
+convection_shift = p.Results.ConvectionShift; 
+
+
 if ~ismember('MinLifetime',p.UsingDefaults)
-   [graph, info, measure] = see_nfkb_native(id,'MinLifetime',p.Results.MinLifetime,...
-                            'ConvectionShift',p.Results.ConvectionShift);
-   graph.var = graph.var(:,1:p.Results.MinLifetime);
-   graph.t = graph.t(1:size(graph.var,2));
-   graph.opt = maketicks(graph.t,info.graph_limits,0);
-   graph.opt.Name= 'NF\kappaB Activation';
+   [graph, info, measure] = see_nfkb_native(id,'MinLifetime',min_lifetime,...
+                            'ConvectionShift',convection_shift, 'baseline',baseline,...
+                            'area_thresh', area_thresh,'start_thresh', start_thresh);
+   
 else
-   [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',p.Results.ConvectionShift);
+   [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',convection_shift,...
+       'baseline', baseline,'start_thresh', start_thresh, 'area_thresh', area_thresh);
 end
+graph.var = graph.var(:,1:p.Results.TrimFrame);
+graph.t = graph.t(1:size(graph.var,2));
+graph.opt = maketicks(graph.t,info.graph_limits,0);
+graph.opt.Name= 'NF\kappaB Activation';
 
 if ~ismember ('baseline',p.UsingDefaults)
     baseline = info.baseline;
