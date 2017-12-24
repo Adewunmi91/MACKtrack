@@ -208,11 +208,6 @@ if isnumeric(id)
              info.baseline = 1.8;
 %           %area_thresh = 10;
          end
-<<<<<<< HEAD
-    
-        
-        
-=======
          
          %imaged with 0.63 x cmount left scope
          if ismember (id, 613:616)
@@ -225,7 +220,7 @@ if isnumeric(id)
         end
                   
          end
->>>>>>> origin/master
+
     end
 end
 
