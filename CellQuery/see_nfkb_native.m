@@ -44,9 +44,8 @@ valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
     'Convection correction parameter must be single integer >= 0');
 addParameter(p,'ConvectionShift',1, valid_conv);
 addParameter(p,'MinLifetime',100, @isnumeric);
-addParameter (p,'start_thresh', 2, @isnumeric);
-
-addParameter (p, 'baseline', 0.75, @isnumeric);
+addParameter (p,'start_thresh', 2.0, @isnumeric);
+addParameter (p, 'baseline', 1, @isnumeric);
 addParameter (p, 'graph_limits',[-0.25 5.5],@isnumeric);
 addParameter (p, 'area_thresh', 90, @isnumeric);
 
@@ -63,7 +62,6 @@ start_thresh= p.Results.start_thresh;
 %% Load data
 [measure, info] = loadID(id);
 info.Module = 'nfkbdimModule';
-
 info.graph_limits = p.Results.graph_limits;
 info.baseline = p.Results.baseline;
 % Set display/filtering parameters
@@ -72,7 +70,6 @@ info.baseline = p.Results.baseline;
 % area_thresh = 90;
 dendro = 0;
 colors = setcolors;
-
 % Experiment-specific visualization settings/tweaks (load spreadsheet URL)
 baseline_length = size(measure.NFkBdimNuclear,2); % Endframe for baseline calculation (default: use entire vector)
 
@@ -208,24 +205,18 @@ if isnumeric(id)
              info.baseline = 1.8;
 %           %area_thresh = 10;
          end
-<<<<<<< HEAD
-    
-        
-        
-=======
-         
+ 
          %imaged with 0.63 x cmount left scope
          if ismember (id, 613:616)
             area_thresh = 50;
             
         if ismember (id, 607:612)
             MinLifetime = 80;
-           start_thresh = 1;
-            
+           start_thresh = 1;            
         end
                   
          end
->>>>>>> origin/master
+
     end
 end
 
@@ -250,8 +241,6 @@ end
 
 % If default end frame is specified, use entire vector for baseline calculation. Otherwise, use specified vector.
 nfkb_min = prctile(nfkb_smooth(:,1:baseline_length),2,2);
-
-
 nfkb_baseline = nanmin([nanmin(nfkb(:,1:4),[],2),nfkb_min],[],2);
 nfkb = nfkb - repmat(nfkb_baseline,1,size(nfkb,2));
 % if verbose_flag
@@ -270,9 +259,6 @@ keep = max(droprows,[],2) == 0;
 start_lvl = nanmin(nfkb(keep,1:3),[],2);
 nuc_lvl = nanmedian(measure.MeanIntensityNuc(keep,1:31),2);
 nuc_thresh = nanmedian(nuc_lvl)+2.5*robuststd(nuc_lvl(:),2);
-
-
-
 droprows =  [droprows, prctile(nfkb(:,1:8),18.75,2) > start_thresh];
 droprows =  [droprows, nanmedian(measure.MeanIntensityNuc(:,1:31),2) > nuc_thresh];
 droprows =  [droprows, nanmedian(measure.Area,2) < area_thresh];
@@ -306,13 +292,11 @@ if verbose_flag
     h = suptitle(['x = Median area. Threshold = ',num2str(area_thresh)]);
     set(h,'FontSize',14)
      end
-     
 
 end
 
 info.keep = max(droprows,[],2) == 0;
 nfkb = nfkb(info.keep,:);
-
 %% Initialize outputs, do final corrections
 graph.celldata = info.CellData(info.keep,:);
 
@@ -321,7 +305,7 @@ graph.celldata = info.CellData(info.keep,:);
 % if dendro
 %     [graph.order, graph.dendro.links] = hierarchial(graph.var(:,1:min([size(graph.var,2),150])),0);
 % else
-%     [~,graph.order] = sort(nansum(graph.var(:,1:min([size(graph.var,2),150])),2),'descend');
+   [~,graph.order] = sort(nansum(graph.var(:,1:min([size(graph.var,2),150])),2),'descend');
 % end
 if verbose_flag 
     for i = 1:length(shift_xy)
@@ -329,22 +313,18 @@ if verbose_flag
     end
 end
 graph.shift = shift_xy;
-
 graph.t = 0:(1/info.parameters.FramesPerHour):48;
 graph.t = graph.t(1:min([length(graph.t),size(graph.var,2)]));
 graph.opt = maketicks(graph.t,info.graph_limits,0);
 graph.opt.Name = 'NF\kappaB Activation'; 
-
 
 %% Graphing
 if graph_flag
     % Colormap stack
     figs.a = figure('name','ColormapStack');
     set(figs.a,'Position', [500 700 1200 600])
-    colormapStack(graph.var(graph.order,:),graph.celldata(graph.order,:), graph.opt);    
-    
-    % Hierarchial linkage
-  
+    colormapStack(graph.var(graph.order,:),graph.celldata(graph.order,:), graph.opt);        
+    % Hierarchial linkage 
     
     if dendro
         graph.dendro.label = cell(size(graph.var,1),1);
