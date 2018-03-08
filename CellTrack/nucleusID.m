@@ -37,9 +37,9 @@ if sum(tmp(:)) < sum(cell_mask(:))
     cell_mask = ~bwareaopen(~(cell_mask|tmp),p.NoiseSize,4);
 end
 % Construct smoothed images + watershed image
-nucleus1 = medfilt2(nuc_orig,[p.MedianFilterSize, p.MedianFilterSize]); % Median-filtered
+nucleus1 = double(medfilt2(uint16(nuc_orig),[p.MedianFilterSize, p.MedianFilterSize])); % Median-filtered
 
-diagnos.nucleus_smooth1 = imfilter(nucleus1,gauss2D(p.MinNucleusRadius/4),'replicate'); % Gaussian filtered
+diagnos.nucleus_smooth1 = imfilter(nucleus1,gauss2D(p.MinNucleusRadius/4),'symmetric'); % Gaussian filtered
 diagnos.watershed1 = watershedalt(diagnos.nucleus_smooth1, cell_mask, 4);
 %- - - - - - - - - - - - - - - - - - - LABEL1: strong edges  - - - - - - - - - - - - - - - - - - - - - - -
 % 1) Iterate down to p.NucleusEdgeThreshold to find strong-edge nuclei
@@ -49,9 +49,8 @@ diagnos.edge_mag = sqrt(horizontalEdge.^2 + verticalEdge.^2);
 diagnos.edge_mag(nucleus1==max(nucleus1(:))) = max(diagnos.edge_mag(:)); % Correct for saturated nuclear centers
 %%
 tmp1 = diagnos.edge_mag(cell_mask);
-edge_cutoffs = linspace(p.NucleusEdgeThreshold, prctile(tmp1(:),97),21);
+edge_cutoffs = exp(linspace(log(p.NucleusEdgeThreshold), log(prctile(tmp1(:),97)),15));
 cc_list = {};
-z = [];
 for i = 1:length(edge_cutoffs)
     % a) Threshold, drop already-found objects
     mask0  = cell_mask & diagnos.edge_mag>=edge_cutoffs(end-i+1);
@@ -67,7 +66,6 @@ for i = 1:length(edge_cutoffs)
         fill_size = round(6*cutoff.Area(1));
     end
     mask0 = ~bwareaopen(~mask0,fill_size,4); 
-    z = cat(3,z,mask0);
     if ~isempty(tmp_drop)
         mask0(tmp_drop) = 0;
     end
@@ -82,13 +80,24 @@ for i = 1:length(edge_cutoffs)
     cc_new = bwconncomp(mask0,8);
     cc_list = cat(2,cc_list,cc_new.PixelIdxList);
 end
-%%
+
 cc_all.PixelIdxList = cc_list';
 cc_all.ImageSize = size(diagnos.edge_mag);
 cc_all.NumObjects = length(cc_list);
 cc_all.Connectivity = 4;
 diagnos.label1a = labelmatrix(cc_all); % Edge-based division lines
 
+% Quality check #1: ensure no object is wholly surrounded by another object, with no intervening background
+erode1 = imerode(diagnos.label1a,ones(3));
+dilate1 = imdilate(diagnos.label1a,ones(3));
+get_unique = @(pixlist) unique([erode1(pixlist(:));dilate1(pixlist(:))]) ;
+uniquelist = cellfun(get_unique,cc_all.PixelIdxList,'UniformOutput',0);
+filter_obj = @(uniquelist) ~ismember(0,uniquelist) & (length(uniquelist)==2);
+surroundeds = find(cellfun(filter_obj, uniquelist));
+for i = 1:length(surroundeds)
+    tmp_list = uniquelist{surroundeds(i)};
+    diagnos.label1a(diagnos.label1a==surroundeds(i)) = tmp_list(tmp_list~=surroundeds(i));
+end
 
 %% 2) Label1b: subdivide objects using concave points on perimeter (~ >225 degrees)
 tmp_label  =diagnos.label1a; tmp_label(diagnos.label1a==0) = max(diagnos.label1a(:))+1;
@@ -128,7 +137,9 @@ if p.WeakObjectCutoff>0
 
     % Rank remaining pixels, and use highest-valued pixels to bridge adjacent watershed regions
     diagnos.weak_ranked = rankpixels(diagnos.watershed_remainder, nucleus1);
-    high_valued = bwconncomp(diagnos.weak_ranked==max(diagnos.weak_ranked(:)));
+    tmp_mask = diagnos.weak_ranked==max(diagnos.weak_ranked(:));
+    tmp_mask = bwareaopen(tmp_mask,3); % Remove any speckle noise
+    high_valued = bwconncomp(tmp_mask);
     % Merge watershed areas based on connected "high" areas
     for i = 1:high_valued.NumObjects
         obj = unique(diagnos.watershed_remainder(high_valued.PixelIdxList{i}));
@@ -146,33 +157,41 @@ if p.WeakObjectCutoff>0
     diagnos.watershed_remainder((imdilate(diagnos.watershed_remainder,ones(3))-diagnos.watershed_remainder)>0) = 0;
 
     % Check that brightest part of "nucleus" is relatively concentric-shaped and contiguous
+    tmp_mask = imdilate(diagnos.weak_ranked2==1,ones(3))|(diagnos.weak_ranked==0);
+    tmp_mask2 = diagnos.watershed_remainder==0;
+    tmp_mask2(~tmp_mask) = 0;
+    diagnos.weak_ranked2(tmp_mask2) = 0;
     test_weak =  diagnos.weak_ranked2 - imerode(diagnos.weak_ranked2,ones(3));
-    bright_edge = bwareaopen(test_weak==4,8);
-    test_weak(bright_edge) = 100; % Penalize cells with strong intensity values near edge
-
 
     % Label2a: based on watershed remainder
     diagnos.label2a = diagnos.watershed_remainder;
     diagnos.weak_objects = zeros(size(test_weak)); % (diagnostic image)
     weak_obj = label2cc(diagnos.label2a);
-    for i = 1:weak_obj.NumObjects
-        testval = mean(test_weak(weak_obj.PixelIdxList{i}));
-        diagnos.weak_objects(weak_obj.PixelIdxList{i}) = min([testval,3]);
-        if (testval > p.WeakObjectCutoff) || (testval==0)
-            diagnos.label2a(weak_obj.PixelIdxList{i}) = 0;
-        end      
-    end
-    % Clean up label2
-    diagnos.label2a(diagnos.weak_ranked2<=2) = 0; % Only look at brightest 25% of area
-    diagnos.label2a = imclose(diagnos.label2a,diskstrel(2));
-    diagnos.label2a(~imopen(diagnos.label2a>0,diskstrel(floor(p.MinNucleusRadius*2/3)))) = 0;
     
-    % Fix bug where some edge pixels belong to another object
-    diagnos.label2a= imerode(imdilate(diagnos.label2a,ones(3)),ones(3));
-    diagnos.label2a= imdilate(imerode(diagnos.label2a,ones(3)),ones(3));
-    diagnos.label2a = labelmatrix(label2cc(diagnos.label2a));
+    get_score = @(pix) (sum(test_weak(pix)==2) + 3.3*sum(test_weak(pix)==3) + 10*sum(test_weak(pix)==4))/sqrt(numel(pix));
+    all_scores = cellfun(get_score,weak_obj.PixelIdxList)/p.MinNucleusRadius; % scale measurement in range w/ prior score
+    for i = 1:weak_obj.NumObjects
+        diagnos.weak_objects(weak_obj.PixelIdxList{i}) = all_scores(i);
+    end
+    diagnos.weak_objects(diagnos.weak_objects>5) = 5;
+    
+    % Omit non-concentric objects, then get brightest 12% of pixels in region and proceed).
+    diagnos.label2a(diagnos.weak_objects>p.WeakObjectCutoff) = 0;
+    diagnos.label2a(diagnos.weak_ranked2<=2) = 0; 
+    diagnos.label2a = imclose(diagnos.label2a,diskstrel(2));
+    
+    % Filter out small objects (label2b)
+    diagnos.label2b = diagnos.label2a;
+    diagnos.label2b(~imopen(diagnos.label2a>0,diskstrel(p.NuclearSmooth))) = 0;
+    diagnos.label2b(~bwareaopen(diagnos.label2b,cutoff.Area(1))) = 0;
+    % (Fix bug where some edge pixels belong to another object)
+    diagnos.label2b= imerode(imdilate(diagnos.label2b,ones(3)),ones(3));
+    diagnos.label2b= imdilate(imerode(diagnos.label2b,ones(3)),ones(3));
+    diagnos.label2b = labelmatrix(label2cc(diagnos.label2b));
     cutoff.Area(1) = cutoff.Area(1)*0.5;
-    diagnos.label2 = bridgenuclei(diagnos.label2a,bwconncomp(diagnos.label2a>0,4),cutoff,p.ShapeDef, p.debug);
+    
+    % Do watershed + recombine using morphological properties
+    diagnos.label2 = bridgenuclei(diagnos.label2b,bwconncomp(diagnos.label2b>0,4),cutoff,p.ShapeDef, p.debug);
 else
     diagnos.label2 = zeros(size(diagnos.label1));
 end

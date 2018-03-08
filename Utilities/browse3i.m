@@ -49,7 +49,7 @@ while ~ok_go
         loadtoc = toc;
         ok_go = 1;
     catch ME
-        handles.dir = uigetdir(start_dir,'Invalid folder - choose another one');
+        handles.dir = uigetdir(start_dir,'Invalid fMACKolder - choose another one');
         if handles.dir==0
             error('No folder selected - exiting.')
         else
@@ -60,9 +60,19 @@ while ~ok_go
         end
     end
 end
+disp(['Loaded contents of ',handles.dir ,' in ',num2str(round(loadtoc*100)/100),' sec'])
 
-disp(['Loaded directory contents in ',num2str(round(loadtoc*100)/100),' sec'])
-ext_matches = {'.jpg', '.tif', 'tiff', '.png'};
+
+% Need some kind of way to gracefully handle "extra" data points (e.g. 000.01) -> for now, filter them out.
+filter_str = @(str) (length(str)>10) && length(strfind(str,'.'))>1;
+drop_names  = cellfun(filter_str,handles.dir_contents);
+if sum(drop_names)>0
+    disp('Warning: found "intermediate" timepoint images in this folder (e.g. ''t001.02_C0.tiff'') - dropping these.')
+    handles.dir_contents(drop_names) = [];
+end
+
+
+ext_matches = {'.tif', 'tiff'};
 draw = 0;
 % Cycle through to get 1st image - parse its name, then break the loop
 for i=1:length(handles.dir_contents)
@@ -147,11 +157,9 @@ if draw
     imfo = imfinfo([handles.dir,filesep,handles.img]);
     handles.bit_depth = imfo.BitDepth;
     
-    
+   
 
-
-
-    img = checkread([handles.dir,filesep,handles.img],handles.bit_depth,0,0);
+    img = imread([handles.dir,filesep,handles.img]);
     handles.CLim = double([min(img(:)), max(img(:))]);
     set(handles.axes1,'CLim',handles.CLim)
     if size(img,1) > size(img,2)
@@ -165,8 +173,9 @@ if draw
     set(handles.histbutton,'Callback',{@hist_callback,handles});
 
     % Set GUI elements to appropriate position
+    if handles.max_s==handles.min_s; stepsz = 0; else stepsz = 1/(handles.max_s-handles.min_s); end
     set(handles.slider1,'Min',handles.min_s,'Max',handles.max_s, 'Value',handles.vals(1), ...
-        'SliderStep',[1/(handles.max_s-handles.min_s) 10/(handles.max_s-handles.min_s)]);
+        'SliderStep',[stepsz 10*stepsz]);
     set(handles.text1,'String', ['time:',num2str(handles.vals(2)),' | XY pos:', num2str(handles.vals(1))...
         ' | channel:', num2str(handles.vals(3))])
     set(handles.text2,'String',[numseq(handles.vals(1),handles.lengths(1)),'/',numseq(handles.max_s,handles.lengths(1))])
@@ -188,7 +197,7 @@ function [handles_out] = drawimage(handles)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % Update image in the axes
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-img = checkread([handles.dir,filesep,handles.img],handles.bit_depth,0,0);
+img = imread([handles.dir,filesep,handles.img]);
 if size(img,1) > size(img,2)
     img = imrotate(img,90);
 end
@@ -453,7 +462,7 @@ string_group{3}, numseq(vals(3),lengths(3)), string_group{4}];
 function [vals] = extract_vals(string_in)
 all_numidx = regexp(string_in,'[0-9]');
 a = find(diff([2, all_numidx])~=1);
-b = [a(2:end)-1 length(all_numidx)];
+b = [a(2:end)-1 length(all_numidx)]; 
 vals = [eval(string_in(all_numidx(a(1):b(1)))),...
     eval(string_in(all_numidx(a(2):b(2)))),...
     eval(string_in(all_numidx(a(3):b(3))))];

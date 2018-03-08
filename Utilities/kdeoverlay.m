@@ -1,6 +1,6 @@
 function [h_ax, bandwidth] = kdeoverlay(vects, varargin) 
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% [] = kdeoverlay(vects, places, varargin) 
+% [h_ax, bandwidth] = kdeoverlay(vects, varargin) 
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % KDEOVERLAY computes a kernel density estimate for a set of distributions ('vects')
 %
@@ -27,8 +27,10 @@ p = inputParser;
 addRequired(p,'vects',@iscell);
 
 % Optional parameters
-default_color = mat2cell(linspecer(numel(vects)),ones(1,numel(vects)));
-valid_color = @(x) assert(iscell(x)&&length(x{1})==3, 'Specify colors with a cell matrix of RGB triplets');
+colors = setcolors;
+default_color = colors.theme1;
+valid_color = @(x) assert(  (isnumeric(x)&&(size(x,2)==3)) || (iscell(x)&&length(x{1})==3), ...
+    'Specify colors with a cell matrix of RGB triplets');
 addParameter(p,'Color', default_color,valid_color);
 
 all = cell2mat(vects(:));
@@ -50,7 +52,17 @@ bandwidth = p.Results.Bandwidth;
 linewidth = p.Results.LineWidth;
 alpha = p.Results.Alpha;
 
-% Create figure (if axes wasn't provided)
+% Repeat colors if length of vector is too short
+if length(colors) < length(vects)
+    colors = repmat(colors,[1 ceil(length(vects)/length(colors))]);
+end
+
+if iscell(colors)
+    colors = cell2mat(colors(:));
+end
+
+
+%% Create figure (if axes wasn't provided)
 if ~ishandle(p.Results.Axes)
     kdefig = figure('Position', positionfig(800, 300), 'PaperPositionMode','auto');
     h_ax = axes('Parent',kdefig);
@@ -69,9 +81,9 @@ for i = 1:length(vects)
     [y_val] = ksdensity(vects{i},x_val,'function','pdf','bandwidth',bandwidth);
     
     if linewidth>0
-        fill([x_val,fliplr(x_val)],[y_val,zeros(size(y_val))],colors{i},'FaceAlpha',alpha,'EdgeColor',colors{i},'LineWidth',linewidth)
+        fill([x_val,fliplr(x_val)],[y_val,zeros(size(y_val))],colors(i,:),'FaceAlpha',alpha,'EdgeColor',colors(i,:),'LineWidth',linewidth,'Parent',h_ax)
     else
-        fill([x_val,fliplr(x_val)],[y_val,zeros(size(y_val))],colors{i},'FaceAlpha',alpha,'EdgeColor','none')
+        fill([x_val,fliplr(x_val)],[y_val,zeros(size(y_val))],colors(i,:),'FaceAlpha',alpha,'EdgeColor','none','Parent',h_ax)
     end
 end
 

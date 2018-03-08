@@ -8,25 +8,18 @@ function [] = measureLoop(xy, parameters)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 % Form xy path, initialize structures for measurements and module information              
-parameters.XYDir = [parameters.locations.data,filesep,parameters.SaveDirectory,filesep,'xy',num2str(xy),filesep];   
+parameters.XYDir = namecheck([parameters.locations.data,filesep,parameters.SaveDirectory,filesep,'xy',num2str(xy),filesep]);   
 CellMeasurements = struct;      
 ModuleData = struct;
 
-% Convert any parameter flatfield images to functions
-if isfield(parameters,'Flatfield')
-    X = [];
-    warning off MATLAB:nearlySingularMatrix
-    for i = 1:length(parameters.Flatfield)
-        if size(X,1) ~= numel(parameters.Flatfield{i})
-            X = backgroundcalculate(size(parameters.Flatfield{i}));
-        end        
-        corr_img = parameters.Flatfield{i};
-        pStar = (X'*X)\(X')*corr_img(:);
-        % Apply correction
-        corr_img = reshape(X*pStar,size(corr_img));
-        parameters.Flatfield{i} = corr_img-min(corr_img(:));
-    end
-end
+% Resort ModuleNames 
+% - make sure any "456" modules are run AFTER their corresponding module.
+% - move penultimate modules to the end.
+names_456 = ~cellfun(@isempty,strfind(parameters.ModuleNames,'456'));
+parameters.ModuleNames = [parameters.ModuleNames(~names_456),parameters.ModuleNames(names_456)];
+names_penult = ~cellfun(@isempty,strfind(parameters.ModuleNames,'penult'));
+parameters.ModuleNames = [parameters.ModuleNames(~names_penult),parameters.ModuleNames(names_penult)];
+
 
 % Load and add CellData field to CellMeasurements
 if exist([parameters.XYDir,'CellData.mat'],'file')
@@ -43,10 +36,9 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
          CellData.Parent,... % 5) ID number of parent
          CellData.Edge];   % 6) Boolean of whether cell touches image edge during lifetime
 
-
     % Inner loop: cycle time points (in each xy)
     tic
-    for iter = 1:parameters.TotalImages
+    for iter = 1:parameters.TotalImages 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Run measurement modules, adding new fields to CellMeasurements
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,7 +65,7 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
                     ' (xy ',num2str(i),' frame ',num2str(iter),')'])
             end
         end
-        
+       
         j = parameters.TimeRange(iter);
         
         % Cycle through module names- construct name, load aux image, and call
@@ -82,6 +74,12 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
             ModuleData.iter = iter;
             ModuleData.i = i;
             ModuleData.j = j;
+            
+            % Tweak for "penultimate" modules - we want these to run @ end, but use previous (penultimate) timepoint.
+            if ~isempty(strfind(ModuleData.name, 'penult_')) && (iter>1)
+                j = parameters.TimeRange(iter-1);
+            end
+            
             ModuleData.AuxName = cell(1,3);
             AuxImages = cell(size(ModuleData.AuxName));
             if  parameters.(ModuleData.name).Use == 1;                
@@ -94,7 +92,7 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
                         curr_expr = parameters.(ModuleData.name).(['ImageExpr',num2str(aux)]);
                     end
                     try
-                        curr_name = [parameters.locations.scope, filesep,parameters.ImagePath, filesep, eval(curr_expr)]; 
+                        curr_name = namecheck([parameters.locations.scope, filesep,parameters.ImagePath, filesep, eval(curr_expr)]); 
                     catch
                         curr_name = '--';
                     end
@@ -104,15 +102,22 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
                             imfo = imfinfo(curr_name);
                             ModuleData.BitDepth = imfo.BitDepth;
                         end
-                        AuxImages{aux} = checkread(curr_name,ModuleData.BitDepth); 
+                        AuxImages{aux} = checkread(curr_name,ModuleData.BitDepth);
+                        if ~isequal(size(AuxImages{aux}), size(labels.Nucleus))
+                            AuxImages{aux} = zeros(size(labels.Nucleus));
+                            warning([curr_image, 'is invalid - replacing with blank image.'])
+                        end
+                        
                         ModuleData.AuxName{aux} = curr_name;
                     end
                 end
                 
                 % Call measurement function
                 currentfn = str2func(ModuleData.name);
-                [CellMeasurements, ModuleData] = currentfn(CellMeasurements,parameters,labels, AuxImages, ModuleData);            
+                [CellMeasurements, ModuleData] = currentfn(CellMeasurements,parameters,labels, AuxImages, ModuleData);   
             end
+            % Reset j (if changed)
+            j = parameters.TimeRange(iter);
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Display status on every 10th run
@@ -129,7 +134,7 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
     end
     
     % Save CellMeasurements
-    save([parameters.XYDir,'CellMeasurements.mat'], 'CellMeasurements','-v7.3')
+    save(namecheck([parameters.XYDir,'CellMeasurements.mat']), 'CellMeasurements','-v7.3')
 else
     disp(['Skipping XY ',num2str(xy)])
 end

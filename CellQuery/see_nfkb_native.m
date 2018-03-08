@@ -32,7 +32,7 @@
 %% Create input parser object, add required params from function input
 p = inputParser;
 % Required: ID input
-valid_id = @(x) assert((isnumeric(x)&&length(x)==1)||exist(x,'file'),...
+valid_id = @(x) assert((isnumeric(x)&&length(x)==1)||isstruct(x)||exist(x,'file'),...
     'ID input must be spreadsheet ID or full file path');
 addRequired(p,'id',valid_id);
 
@@ -62,7 +62,7 @@ start_thresh= p.Results.start_thresh;
 
 %% Load data
 [measure, info] = loadID(id);
-info.Module = 'nfkbdimModule';
+info.ImageExpr = info.parameters.nfkbdimModule.ImageExpr;
 
 info.graph_limits = p.Results.graph_limits;
 info.baseline = p.Results.baseline;

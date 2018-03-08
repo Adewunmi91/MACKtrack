@@ -7,9 +7,14 @@ function [handlesOut] = initializeParameters(paramfile, handles)
 %
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-load(paramfile,'-mat')
-handles.parameters = parameters;
-
+S = load(paramfile,'-mat');
+if isfield(S,'parameters')
+    handles.parameters = S.parameters;
+elseif isfield(S,'AllMeasurements')
+    handles.parameters = S.AllMeasurements.parameters;
+else
+    error('Invalid parameters file specified - needs to be a (saved) parameters file, or an AllMeasurements file')
+end
 
 % Load default parameters and fill in any fields that are missing in loaded file
 load([handles.home_folder,'default_parameters.mat'],'-mat')
@@ -22,7 +27,7 @@ for i = 1:length(oldfields)
 end
 
 % Loading/saving expressions and directories
-set(handles.edit1A,'String',ffp(handles.parameters.ImagePath))
+set(handles.edit1A,'String',namecheck(handles.parameters.ImagePath))
 set(handles.edit2C,'String',handles.parameters.XYExpr)
 set(handles.edit2D,'String',handles.parameters.TimeExpr)
 set(handles.edit3A,'String',handles.parameters.SaveDirectory)
@@ -43,6 +48,11 @@ else
     set(handles.edit2C,'ForegroundColor',[0 0 0])
     set(handles.edit2D,'ForegroundColor',[0 0 0])
 end
+
+
+% Parallel/verbose params
+set(handles.checkbox4A, 'Value', handles.parameters.debug);
+set(handles.checkbox4B, 'Value', handles.parameters.Parallel);
 
 %% - - - - - - - - - Nuclear parameters - - - - - - - - - - - - 
 nuc_edge = handles.parameters.NucleusEdgeThreshold;
@@ -204,7 +214,7 @@ set(handles.checkbox7A, 'Value', handles.parameters.(contents(1).name).Use);
 try
     i = min(handles.parameters.XYRange);
     j = min(handles.parameters.TimeRange);
-    filePath = ffp([handles.locations.scope, handles.parameters.ImagePath,eval(handles.parameters.(contents(1).name).ImageExpr)]);
+    filePath = namecheck([handles.locations.scope, handles.parameters.ImagePath,eval(handles.parameters.(contents(1).name).ImageExpr)]);
     if exist(filePath,'file')
         set(handles.text7K_2,'ForegroundColor',handles.blue)    
     else
@@ -259,22 +269,11 @@ if handles.parameters.NucleusFF > length(flatfields)
     handles.parameters.NucleusFF = 0;
     set(handles.popupmenu6B,'Value',0);
 end
-set(handles.popupmenu6A,'String',cat(1,{'None'},flatfields));
+set(handles.popupmenu6A,'String',cat(1,{'Don''t mask with nuclear image'},flatfields));
 set(handles.popupmenu6A,'Value',handles.parameters.NucleusFF+1)
 set(handles.popupmenu6B,'Value',handles.parameters.CellFF+1)
 guidata(handles.figure1,handles)
 
 
-
-
-
-%% Resave parameters in place to reflect new updated values
-load(paramfile,'-mat') % Reload original parameters for comparison
-if ~isequal(handles.parameters,parameters)
-    disp('Saving automatically-updated parameters')
-    parameters = handles.parameters;
-    save(paramfile,'parameters')
-end
-
-
 handlesOut = handles;
+

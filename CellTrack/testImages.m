@@ -9,19 +9,21 @@ function [] = testImages(handles)
 
 % - - - - Setup: create structure for images, define options - - - -
 p = handles.parameters;
+assignin('base','p',handles.parameters) % Move parameters into workspace
 locations = handles.locations;
+
 i = min(p.XYRange);
 j = min(p.TimeRange);
 p.i = i; p.j = j;
 
 % Load all base images
-imfo = imfinfo(ffp([locations.scope,p.ImagePath,filesep,eval(p.NucleusExpr)]));
+imfo = imfinfo(namecheck([locations.scope,p.ImagePath,filesep,eval(p.NucleusExpr)]));
 bit_depth = imfo.BitDepth;
 
 images = struct;
-images.nucleus = checkread(ffp([locations.scope,p.ImagePath,filesep,eval(p.NucleusExpr)]),bit_depth);
+images.nucleus = checkread(namecheck([locations.scope,p.ImagePath,filesep,eval(p.NucleusExpr)]),bit_depth);
 if ~strcmpi(p.ImageType,'none')
-    images.cell = checkread(ffp([locations.scope,p.ImagePath,filesep,eval(p.CellExpr)]),bit_depth);
+    images.cell = checkread(namecheck([locations.scope,p.ImagePath,filesep,eval(p.CellExpr)]),bit_depth);
 else
     images.cell = images.nucleus;
 end
@@ -52,21 +54,7 @@ end
 
 % Convert any parameter flatfield images to functions
 if isfield(p,'Flatfield')
-    X = [];
-    warning off MATLAB:nearlySingularMatrix
-    for i = 1:length(p.Flatfield)
-        if size(X,1) ~= numel(p.Flatfield{i})
-            X = backgroundcalculate(size(p.Flatfield{i}));
-        end        
-        corr_img = p.Flatfield{i};
-        pStar = (X'*X)\(X')*corr_img(:);
-        % Apply correction
-        corr_img = reshape(X*pStar,size(corr_img));
-        if rotate_flag
-            corr_img = imrotate(corr_img,90);
-        end
-        p.Flatfield{i} = corr_img-min(corr_img(:));
-    end
+    p.Flatfield = processFlatfields(p.Flatfield);
 end
 
 
@@ -109,7 +97,7 @@ tocs.NucMasking = toc;
 
 % - - - - Check cells (misc check for binucleates, missed nuclei, etc.) - - - -
 tic
-[data_tmp,diag_tmp] = doubleCheck(data,images.cell,p);
+[data_tmp,diag_tmp] = doubleCheck(data,p);
 % Save information
 handles.diagnostics.check = diag_tmp;
 data = combinestructures(data_tmp,data);
@@ -201,7 +189,6 @@ set(handles.reset,'Callback',{@reset_Callback,handles});
 imagesc(handles.overlays.(overlayList{1}),'Parent',handles.diagnosticAxes), colormap gray
 set(handles.diagnosticAxes,'YTick',[],'XTick',[])
 set(handles.diagnosticFig,'ResizeFcn',{@fig_resize,handles},'Toolbar','figure');
-assignin('base','p',handles.parameters)
 if isfield(handles,'figure1')
     guidata(handles.figure1,handles)
 end

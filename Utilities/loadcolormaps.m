@@ -15,20 +15,12 @@ function colormaps  = loadcolormaps()
 %   2) 'inferno'
 %   3) 'plasma'
 %   4) 'viridis' colormaps: 
-% New matplotlib colormaps by Nathaniel J. Smith, Stefan van der Walt,
-% and (in the case of viridis) Eric Firing.
-% Colormaps are released under the CC0 license /
-% public domain dedication. We would appreciate credit if you use or
-% redistribute these colormaps, but do not impose any legal restrictions.
-% To the extent possible under law, the persons who associated CC0 with
-% mpl-colormaps have waived all copyright and related or neighboring rights
-% to mpl-colormaps.
-%
+% Matplotlib colormaps by Nathaniel J. Smith, Stefan van der Walt, and Eric Firing.
+% Colormaps are released under the CC0 license / public domain dedication. We would appreciate credit if you use or
+% redistribute these colormaps, but do not impose any legal restrictions. To the extent possible under law, the persons 
+% who associated CC0 with mpl-colormaps have waived all copyright and related or neighboring rights to mpl-colormaps.
 % CCO license: see http://creativecommons.org/publicdomain/zero/1.0/
-%
 % More information: https://bids.github.io/colormap/
-%
-%
 %
 % B) ImageJ-inspired colormaps: 
 %   1) 'blue_hot'
@@ -37,8 +29,10 @@ function colormaps  = loadcolormaps()
 % Generally made using the 'cmap' function and/or manually edited using the MATLAB tool. All maps scale from black, to
 % specified color, to white. These tend to be good for fluorescence images and/or movies
 %
-% C) Other colormaps (various sources, or, again, self-made)
-%    1) 'byr' - blue to yellow to red. It's nice!
+% C) Other colormaps (various sources or self-made)
+%    1) 'byr' - blue to yellow to red diverging map
+%    2) 'byo' - blue to yellow to orange diverging map
+%    3) 'spectrum' - circular map of pigment-inspired hues
 % 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -1985,6 +1979,265 @@ colormaps.byo = [...
 1          0.3899     0.157      
 1          0.371      0.157      
 ];
+
+colormaps.spectrum = [
+  254  230   49
+  252  230   49
+  251  229   48
+  251  229   48
+  252  230   49
+  251  228   49
+  250  228   49
+  249  228   49
+  247  228   48
+  245  227   48
+  244  227   49
+  242  226   47
+  240  225   46
+  238  225   47
+  236  223   47
+  233  223   47
+  228  221   45
+  223  220   44
+  220  219   43
+  215  216   44
+  210  215   43
+  205  213   42
+  199  211   42
+  193  209   41
+  188  206   43
+  179  203   46
+  173  202   46
+  166  199   48
+  160  195   49
+  151  192   48
+  144  190   49
+  136  187   49
+  130  184   49
+  120  180   50
+  110  176   51
+  101  171   50
+   88  170   51
+   76  165   52
+   62  161   52
+   46  159   54
+   33  155   55
+   21  153   57
+   15  150   57
+   13  147   60
+   13  146   61
+   13  143   62
+   13  141   65
+   12  140   65
+   12  140   66
+   12  139   69
+   12  139   72
+   12  138   75
+   12  137   79
+   12  136   82
+   13  137   87
+   13  136   90
+   13  137   94
+   12  137   96
+   12  137  101
+   12  137  106
+   13  137  109
+   13  137  113
+   13  137  118
+   12  137  123
+   12  136  125
+   13  136  131
+   13  136  135
+   13  135  138
+   13  135  141
+   13  134  143
+   13  134  145
+   12  133  146
+   12  132  149
+   12  129  150
+   12  128  152
+   12  127  154
+   12  125  155
+   11  122  157
+   11  120  159
+   11  119  160
+   12  118  160
+   11  116  162
+   10  115  162
+   10  113  162
+   10  112  164
+   11  111  165
+   10  109  164
+   10  109  166
+   10  108  167
+   10  106  166
+    9  105  166
+    9  103  167
+    9  102  167
+   10   99  167
+    9   98  166
+    9   97  167
+    8   96  167
+    8   95  166
+    8   94  167
+    9   94  167
+    9   93  166
+    8   92  165
+    8   92  165
+    8   92  165
+    6   89  163
+    7   87  162
+    8   87  162
+    7   85  160
+    7   84  160
+    6   82  157
+    8   81  157
+   17   79  156
+   24   78  155
+   29   77  153
+   36   75  152
+   42   72  150
+   44   70  147
+   51   68  146
+   57   66  145
+   62   64  142
+   68   62  141
+   72   60  139
+   76   57  137
+   80   57  137
+   83   57  137
+   87   57  137
+   90   55  135
+   93   55  134
+   98   53  134
+  101   52  133
+  104   52  133
+  107   52  133
+  110   51  133
+  112   48  132
+  116   49  132
+  119   48  131
+  121   47  129
+  124   46  130
+  127   45  130
+  129   44  129
+  132   44  128
+  134   43  127
+  136   40  127
+  139   40  127
+  142   39  126
+  144   38  125
+  147   38  124
+  149   38  124
+  152   37  125
+  153   35  124
+  155   35  124
+  158   34  124
+  159   34  125
+  161   32  124
+  164   32  124
+  166   33  123
+  167   34  123
+  170   36  124
+  172   38  125
+  175   39  125
+  178   40  126
+  181   40  126
+  183   40  125
+  186   40  124
+  188   41  122
+  189   43  122
+  192   42  119
+  193   42  116
+  195   43  114
+  198   42  112
+  200   41  110
+  201   41  105
+  205   41  102
+  206   42   99
+  207   42   96
+  208   42   91
+  210   43   87
+  211   43   83
+  212   41   77
+  214   42   72
+  216   41   69
+  218   42   64
+  219   44   62
+  221   45   58
+  221   44   54
+  221   44   50
+  224   46   49
+  223   47   47
+  224   49   45
+  224   50   43
+  226   53   43
+  225   55   41
+  227   56   39
+  227   58   40
+  226   60   40
+  227   61   38
+  228   64   37
+  228   67   38
+  228   70   38
+  230   73   38
+  230   75   37
+  229   78   37
+  229   80   37
+  230   83   37
+  229   87   36
+  229   89   36
+  230   92   38
+  231   95   38
+  230   96   38
+  232   99   39
+  232  101   39
+  232  103   38
+  233  105   40
+  233  108   39
+  233  111   38
+  234  112   39
+  233  114   41
+  234  117   41
+  235  120   40
+  236  122   40
+  236  124   40
+  236  127   42
+  236  129   43
+  237  131   42
+  237  135   42
+  237  137   43
+  238  140   43
+  239  143   43
+  239  146   43
+  239  149   44
+  239  152   44
+  242  154   44
+  242  156   43
+  243  159   41
+  243  161   43
+  242  164   41
+  242  167   40
+  244  169   42
+  245  171   41
+  245  174   41
+  246  176   42
+  246  178   41
+  247  180   43
+  247  182   43
+  246  183   42
+  248  185   43
+  248  186   43
+  248  186   43
+  247  188   44
+  247  189   44
+  247  189   43
+  247  189   43
+  248  190   44
+  248  190   44
+  248  190   44
+  247  191   44]/255;
+
 
 %%
       

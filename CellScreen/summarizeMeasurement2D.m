@@ -14,9 +14,9 @@ function [] = summarizeMeasurement2D(AllData, measure_x, measure_y, x_lim, y_lim
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 if nargin<5
-        y_lim = [0.01 97];
+        y_lim = [1 99];
     if nargin<4
-        x_lim = [0.01 97];
+        x_lim = [1 99];
     end
 end
 
@@ -34,7 +34,6 @@ end
 [all_x] = restructuredata(AllData,measure_x);
 [all_y] = restructuredata(AllData,measure_y);
 
-%
 x_rng = prctile(all_vals_x, x_lim);
 y_rng = prctile(all_vals_y, y_lim);
 
@@ -44,18 +43,19 @@ n_rows = ceil(length(all_x)/n_cols);
 figure('Position',positionfig(1150,n_rows*200),'Name', ['''',measure_x,''' vs. ''', measure_y,''' (all conditions)'])
 ha = tight_subplot(n_rows,n_cols,[0.01 0.01]);
 
-colormaps=  loadcolormaps;
 for i = 1:length(all_cond)
     drops = isnan(all_x{i}) | isnan(all_y{i});
-    [~,h1] = dscatter2(all_x{i}(~drops),all_y{i}(~drops),'parent',ha(i));
-    alpha(h1,0.4)
-    r = corr(all_x{i}(~drops),all_y{i}(~drops));
-    set(ha(i),'XLim',x_rng,'YLim',y_rng,'XTickLabel',{},'YTickLabel',{},'XGrid','on','Ygrid','on')
-    text(mean(x_rng),max(y_rng),[num2str(i),') ', all_cond{i},' ( n=',num2str(length(all_x{i})),' )'],...
-        'HorizontalAlignment','center','VerticalAlignment','top','Parent',ha(i),'BackgroundColor','w',...
-        'Interpreter','none')
-        text(max(x_rng),min(y_rng),['r = ',num2str(r)],...
-        'HorizontalAlignment','right','VerticalAlignment','bottom','Parent',ha(i),'BackgroundColor','w',...
-        'Interpreter','none')
+    if ~isempty(all_x{i}(~drops))
+        [~,h1] = dscatter2(all_x{i}(~drops),all_y{i}(~drops),'parent',ha(i));
+        alpha(h1,0.4)
+        r = corr(all_x{i}(~drops),all_y{i}(~drops));
+        set(ha(i),'XLim',x_rng,'YLim',y_rng,'XTickLabel',{},'YTickLabel',{},'XGrid','on','Ygrid','on')
+        text(mean(x_rng),max(y_rng),[num2str(i),') ', all_cond{i},' ( n=',num2str(length(all_x{i})),' )'],...
+            'HorizontalAlignment','center','VerticalAlignment','top','Parent',ha(i),'BackgroundColor','w',...
+            'Interpreter','none')
+            text(max(x_rng),min(y_rng),['r = ',num2str(r)],...
+            'HorizontalAlignment','right','VerticalAlignment','bottom','Parent',ha(i),'BackgroundColor','w',...
+            'Interpreter','none')
+    end
 end
-colormap(colormaps.viridis(end:-1:1,:))
+colormap(cbrewer('seq','PuBu',256))

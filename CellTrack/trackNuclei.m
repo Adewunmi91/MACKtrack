@@ -12,14 +12,16 @@ function  [CellDataOut, queue_out] =  trackNuclei(queue_in,CellData,curr_frame, 
 % CellDataOut    modified from CellData
 % queue_out      queue_in, but with bottom frame relabeled with tracked objects
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+%%
+
 disp('Tracking decisions:')
 % Define edge image for use later in decision-making
 imgedge = false(size(queue_in(1).nuclei));
 offset = p.ImageOffset{end}-p.ImageOffset{end-1};
-row_low = max([1, 1+p.MinNucleusRadius+offset(1)]);
-row_hi = min([size(imgedge,1),size(imgedge,1)-p.MinNucleusRadius+offset(1)]);  
-col_low = max([1, p.MinNucleusRadius+offset(1)]);
-col_hi = min([size(imgedge,2),size(imgedge,2)-p.MinNucleusRadius+offset(2)]);  
+row_low = ceil(max([1, 1+p.MinNucleusRadius+offset(1)]));
+row_hi = floor(min([size(imgedge,1),size(imgedge,1)-p.MinNucleusRadius+offset(1)]));  
+col_low = ceil(max([1, p.MinNucleusRadius+offset(1)]));
+col_hi = floor(min([size(imgedge,2),size(imgedge,2)-p.MinNucleusRadius+offset(2)]));  
 imgedge([1:row_low,row_hi:end],:) = 1; % Edge rows
 imgedge(:,[1:col_low,col_hi:end]) = 1; % Edge cols
 
@@ -168,10 +170,10 @@ for i = 1:size(blocks,1)
         p_obj = CellData.labeldata(1).obj(CellData.labeldata(1).obj>0);
         p_dist = sqrt( (CellData.labeldata(1).centroidx(p_obj) - labeldata(1).centroidx(blocks(i,1))).^2 + ...
             (CellData.labeldata(1).centroidy(p_obj) - labeldata(1).centroidy(blocks(i,1))).^2 );
-        p_obj = p_obj(p_dist<=p.DriftDistance); % (May want to consider expanding this radius)
+        p_obj = p_obj(p_dist<=p.DriftDistance);
         p_idx = find(ismember(CellData.blocks(:,1),p_obj));
 
-        % Ensure "child" isn't due to spurious false positive -> if obj in new block only coincide w/ obj in candidate "parent"
+        % Ensure "child" isn't due to spurious false positive -> if obj in new block only coincides w/ obj in candidate "parent"
         % blocks for a couple frames, combine those blocks.
         sep = sum((double(repmat(blocks(i,:)>0,[length(p_idx), 1])) + double(blocks_pre(p_idx,:)>0))==1,2);
         if max(sep) > round(p.StackSize*0.66)
@@ -187,6 +189,7 @@ for i = 1:size(blocks,1)
         % Filter 1: parents must be at least 10 hrs old
         p_ages = ((curr_frame-CellData.FrameIn(p_idx))/p.FramesPerHour);
         p_ages(CellData.FrameIn(p_idx)<4) = 1000;
+        p_ages(CellData.Parent(p_idx)==0) = 1000;
         if curr_frame<3
             p_ages(:) = 0;
         end
@@ -207,9 +210,10 @@ for i = 1:size(blocks,1)
             newblocks = cat(1,newblocks, blocks(i,:), blocks_pre(p_idx,:));
             blockedge = cat(1,blockedge, 0, 0);
             blockparent = cat(1,blockparent,p_idx, p_idx);
-            blocks_pre(p_idx,:) = 0; % Zero parent     
+            blocks_pre(p_idx,:) = 0; % Zero parent
+            CellData.blocks(p_idx,:) = 0; % Zero parent in orig data as well
             CellData.FrameOut(p_idx) = curr_frame-1; % Assign parent the proper frame out
-            cellnum = size(blocks_pre,1)+length(blockedge)-1;
+            cellnum = size(blocks_pre,1)+length(blockedge)-1;           
             disp(['Created sisters (from #', num2str(p_idx),') '...
                 '#',num2str(cellnum),' & #',num2str(cellnum+1),...
                 ': [',num2str(newblocks(end-1,:)),'] and [',num2str(newblocks(end,:)),']'])
@@ -229,9 +233,10 @@ for i = 1:size(blocks,1)
     end      
 end
 
+
 % Wrap-up: add in blocks and CellData fields
 CellDataOut.FrameIn = [CellData.FrameIn; curr_frame*ones(size(blockedge))];
-CellDataOut.FrameOut = [CellData.FrameOut; (max(p.TimeRange)-p.StackSize+1)*ones(size(blockedge))];
+CellDataOut.FrameOut = [CellData.FrameOut; (max(p.TimeRange))*ones(size(blockedge))];
 CellDataOut.Parent = [CellData.Parent; blockparent];
 CellDataOut.Edge = [CellData.Edge; blockedge];
 CellDataOut.labeldata = labeldata;

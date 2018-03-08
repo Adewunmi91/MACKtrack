@@ -14,6 +14,7 @@ parameters.debug = 0;
 home_folder = mfilename('fullpath');
 slash_idx = strfind(home_folder,filesep);
 load([home_folder(1:slash_idx(end-1)), 'locations.mat'],'-mat')
+image_jumps = [1 0 0];
 
 images = struct;
 tocs = struct;
@@ -32,39 +33,32 @@ switch lower(parameters.ImageType)
         X = [];
 end
 
-% Convert any parameter flatfield images to functions
-if isfield(parameters,'Flatfield')
-    X = [];
-    warning off MATLAB:nearlySingularMatrix
-    for i = 1:length(parameters.Flatfield)
-        if size(X,1) ~= numel(parameters.Flatfield{i})
-            X = backgroundcalculate(size(parameters.Flatfield{i}));
-        end        
-        corr_img = parameters.Flatfield{i};
-        pStar = (X'*X)\(X')*corr_img(:);
-        % Apply correction
-        corr_img = reshape(X*pStar,size(corr_img));
-        parameters.Flatfield{i} = corr_img-min(corr_img(:));
-    end
-end
-
-
 
 % Get image bit depth
 i = xyPos;
 j =  parameters.TimeRange(1);
-imfo = imfinfo([locations.scope,parameters.ImagePath,eval(parameters.NucleusExpr)]);
+imfo = imfinfo(namecheck([locations.scope,parameters.ImagePath,eval(parameters.NucleusExpr)]));
 bit_depth = imfo.BitDepth;
 
-% Make save directories/image stacks
-outputDirectory = ffp([locations.data,filesep, parameters.SaveDirectory,filesep,'xy',num2str(xyPos),filesep]);
+% Make save directories, save tracking parameters
+outputDirectory = namecheck([locations.data,filesep, parameters.SaveDirectory,filesep,'xy',num2str(xyPos),filesep]);
 mkdir(outputDirectory)
 mkdir([outputDirectory,'NuclearLabels'])    
 mkdir([outputDirectory,'CellLabels'])
 mkdir([outputDirectory,'SegmentedImages'])
 
+% Convert any parameter flatfield images to functions
+if isfield(parameters,'Flatfield')
+    parameters.Flatfield = processFlatfields(parameters.Flatfield);
+end
+
+
 % Make default shift (for tracking cells across image jumps)
 parameters.ImageOffset = repmat({[0 0]},1,parameters.StackSize);
+if sum(isinf(parameters.ImageJumps))>0
+    parameters.ImageJumps = parameters.TimeRange;
+end
+parameters.ImageJumps(parameters.ImageJumps==min(parameters.TimeRange)) = []; % (Error check: can't do a jump w/o a reference)
 
 % Check to make sure time vector is long enough
 if length(parameters.TimeRange) < parameters.StackSize
@@ -94,10 +88,10 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         % Load in images
         tic
         nucName1 = eval(parameters.NucleusExpr);
-        images.nuc = checkread(ffp([locations.scope,parameters.ImagePath,nucName1]),bit_depth,1,parameters.debug);
+        images.nuc = checkread(namecheck([locations.scope,parameters.ImagePath,nucName1]),bit_depth,1,parameters.debug);
         if ~strcmpi(parameters.ImageType,'none')
             cellName1 = eval(parameters.CellExpr);
-            images.cell = checkread(ffp([locations.scope,parameters.ImagePath,cellName1]),bit_depth,1,parameters.debug);
+            images.cell = checkread(namecheck([locations.scope,parameters.ImagePath,cellName1]),bit_depth,1,parameters.debug);
         else
             images.cell = images.nuc;
         end
@@ -112,9 +106,12 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
             else
                 prev_name = eval(parameters.CellExpr);
             end
-            prev_img = checkread([locations.scope,parameters.ImagePath,prev_name],bit_depth,1,parameters.debug);
+            prev_img = checkread(namecheck([locations.scope,parameters.ImagePath,prev_name]),bit_depth,1,parameters.debug);
             new_offset = parameters.ImageOffset{end}+calculatejump(prev_img,images.cell);
-            disp(['Jump @ frame ',num2str(parameters.TimeRange(cycle)),'. Curr. offset: [',num2str(new_offset),']'])       
+            disp(['Jump @ frame ',num2str(parameters.TimeRange(cycle)),'. Curr. offset: [',num2str(new_offset),']'])
+            image_jumps = cat(1,image_jumps,[parameters.TimeRange(cycle) new_offset]);
+            
+            
         else
             new_offset = parameters.ImageOffset{end};
         end
@@ -125,7 +122,7 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         tic
         maskfn = str2func([fnstem,'ID']);
         if strcmpi(parameters.ImageType,'fluorescence')
-            X = images.nuc;
+            X = []; % Don't use (optional) nuclear image to mask
         end
         data = maskfn(images.cell,parameters,X); % either phaseID or dicID (3 args)
         tocs.CellMasking = toc;
@@ -138,7 +135,11 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
 
         % NUCLEUS/CELL CHECKS (preliminary)
         tic
-        present = doubleCheck(data,images.cell,parameters);
+        if exist('future','var')
+            present = doubleCheck(data, parameters, future);
+        else
+            present = doubleCheck(data,parameters);
+        end
         data = combinestructures(present,data);
         tocs.CheckCells = toc;
 
@@ -175,10 +176,10 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
         j = parameters.TimeRange(saveCycle); % Number of the input image corresponding to the BOTTOM of stack
         % Re-read image corresponding to bottom of the stack (for segmentation and saving)
         if strcmpi(parameters.ImageType,'none')
-            images.bottom = checkread([locations.scope,parameters.ImagePath,eval(parameters.NucleusExpr)]...
+            images.bottom = checkread(namecheck([locations.scope,parameters.ImagePath,eval(parameters.NucleusExpr)])...
                 ,bit_depth,1,parameters.debug);
         else
-            images.bottom = checkread([locations.scope,parameters.ImagePath,eval(parameters.CellExpr)]...
+            images.bottom = checkread(namecheck([locations.scope,parameters.ImagePath,eval(parameters.CellExpr)])...
             ,bit_depth,1,parameters.debug);
         end
                 
@@ -245,7 +246,10 @@ for cycle = 1:(length(parameters.TimeRange)+parameters.StackSize-1)
                 tmp1 = modebalance(tmp1,0, bit_depth,'display');               
                 % Non-confluent case - set low saturation @ 3xS.D. below bg level
                 if parameters.Confluence ~= 1
-                    saturation_val = [-3 prctile(tmp1(:),95)];
+                    
+                    pct = 90:.5:99;
+                    hi_val = prctile(tmp1,pct);       
+                    saturation_val = [-3 prctile(tmp1,1+findelbow(pct,hi_val))];
                     alpha = 0.4;
                 else % Confluent case: unimodal distribution is foreground - use a different lower limit.
                     saturation_val = [-4 prctile(tmp1(:),90)];
@@ -293,8 +297,7 @@ end
 
 
 
-
-
-% Save CellData
+% Save CellData and accessory data
 save([outputDirectory,'CellData.mat'],'CellData')
+save([outputDirectory,'ImageJumps.mat'],'image_jumps')
 

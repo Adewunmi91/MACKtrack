@@ -12,6 +12,19 @@ num_images = size(struct1.Images,1);
 % Get list of all measurements (of maximum size)
 m_lengths = [];
 m_names = fieldnames(struct1.Measurements);
+
+% If there are lots and lots of measurements, drop less commonly-used measurements
+if length(m_names)>15
+    m_names(~cellfun(@isempty,strfind(m_names,'Median'))) = [];
+    m_names(~cellfun(@isempty,strfind(m_names,'Integrated'))) = [];
+    m_names(~cellfun(@isempty,strfind(m_names,'Cyto'))) = [];
+    m_names(~cellfun(@isempty,strfind(m_names,'Annulus'))) = [];
+    m_names(~cellfun(@isempty,strfind(m_names,'AxisRatio'))) = [];
+    m_names(~cellfun(@isempty,strfind(m_names,'Perimeter'))) = [];
+    m_names(~cellfun(@isempty,strfind(m_names,'Compactness'))) = [];
+    warning('Too many measurements to show at once - showing only subset') 
+end
+
 for i = 1:length(m_names)
     m_lengths = cat(1,m_lengths, size(struct1.Measurements.(m_names{i}),1));
 end
@@ -23,15 +36,15 @@ else
     figtitle = 'Diagnostic info for structure';
 end
 
-clr = linspecer(100);
-clr(25:70,:) = []; % Drop super-light colors
+clr = cbrewer('div','Spectral',100);
+clr(40:65,:) = []; % Drop super-light colors
 clr = clr(round(linspace(1,size(clr,1),length(use_m))),:);
 
 figure('Name',figtitle,'Position',positionfig(150*num_images,100*length(use_m))) 
 ha = tight_subplot(length(use_m),num_images,[0.005 0.005]);
 
 for i = 1:length(use_m)
-    bin_range = prctile(struct1.Measurements.(m_names{use_m(i)}),[0.01 97]);
+    bin_range = prctile(struct1.Measurements.(m_names{use_m(i)}),[0.5 97]);
     if sum(isnan(bin_range))==0
         bins = linspace(bin_range(1),bin_range(2),60);
     else
@@ -53,7 +66,9 @@ for i = 1:length(use_m)
         if i ==1
             title_name = struct1.Images{j};
             idx1 = strfind(title_name,'_w');
-            title_name = title_name(idx1(1)-6:idx1(1)-1);
+            try
+                title_name = title_name(idx1(1)-6:idx1(1)-1);
+            end
             title(ha(g_idx),title_name,'FontSize',10,'FontWeight','normal','interpreter','none')
         end
     end
