@@ -1,19 +1,25 @@
-function [measure, info] = loadID(id)
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-% [measure, info] = loadID(id, options)
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+function [measure, info, AllMeasurements] = loadID(id, verbose)
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+% [measure, info, AllMeasurements] = loadID(id, options)
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 % LOADID pulls results from an experimental set using a "Scope Runs" Google Doc -
 % choose a set by its ID number
 %
 % INPUTS
-% id          ID# of sets get data from
+% id          ID# of sets get data from (or AllMeasurements.mat file location, or AllMeasurements object)
 %
 % OUTPUTS:
-% measure     full measurement information struct
-% info        general information about experiment and tracking
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% measure          full measurement information struct
+% info             general information about experiment and tracking
+% AllMeasurements  originally-saved output file, augmented w/ measurement-specific information
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+if nargin<2
+    verbose =1 ;
+end
 
-tic
+
+tic;
 home_folder = mfilename('fullpath'); % Load locations (for images and output data)
 slash_idx = strfind(home_folder,filesep);
 load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
@@ -42,6 +48,9 @@ else
     error(['loadID accepts an "AllMeasurements" structure, or a file location/spreadsheet row index.'])
 end
 
+info.locations = locations;
+
+
 % Parse AllMeasurements
 info.CellData = AllMeasurements.CellData;
 info.fields = fieldnames(AllMeasurements);
@@ -55,13 +64,13 @@ end
 info.fields = fieldnames(measure);
 
 % Add measurement-specific information and add to AllParameters:
-% - for see_nfkb calculate base image distributions and threshold for positiev NFkB expression
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% - for see_nfkb calculate base image distributions and threshold for positive NFkB expression
 % - for see_nfkb_native, calculate (adjusted) nfkb & nuclear image distributions
-
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+%
 % Read in 1st image from each XY position, calculate background mean/std (resave AllParameters)
-
 p = AllMeasurements.parameters;
-
 try
     if isfield(AllMeasurements,'NFkBNuclear')
         if ~isfield(p, 'nfkb_thresh')
@@ -88,10 +97,6 @@ try
             AllMeasurements.parameters = p;
             save(info.savename,'AllMeasurements')
         end
-    end
-    % Load NFkB measurement (unimodal background) for endogenous NFkB
-    %     elseif isfield(AllMeasurements, 'NFkBdimNuclear')
-    if isfield(AllMeasurements, 'NFkBdimNuclear')
         if ~isfield(p, 'adj_distr')
             disp('Measuring and saving initial (flatfield-corrected) image distributions')
             p.adj_distr = zeros(2,length(p.XYRange));
@@ -124,6 +129,7 @@ try
             AllMeasurements.parameters = p;
             save(info.savename,'AllMeasurements')
         end
+
     end
     % Load nuclear image for nucIntenstiy Module (dim assumed - unimodal model)
     %     elseif isfield(AllMeasurements, 'MeanIntensityNuc')
@@ -159,6 +165,7 @@ try
             AllMeasurements.parameters = p;
             save(info.savename,'AllMeasurements')
         end
+
     end
     
 catch me
@@ -170,5 +177,7 @@ end
 info.parameters = p;
 
 toc1 = toc;
-disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec'])
+
+if verbose
+    disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec']) 
 end
