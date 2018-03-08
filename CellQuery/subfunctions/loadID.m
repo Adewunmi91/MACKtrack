@@ -1,7 +1,7 @@
 function [measure, info] = loadID(id)
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % [measure, info] = loadID(id, options)
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % LOADID pulls results from an experimental set using a "Scope Runs" Google Doc -
 % choose a set by its ID number
 %
@@ -11,25 +11,26 @@ function [measure, info] = loadID(id)
 % OUTPUTS:
 % measure     full measurement information struct
 % info        general information about experiment and tracking
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 tic
 home_folder = mfilename('fullpath'); % Load locations (for images and output data)
 slash_idx = strfind(home_folder,filesep);
 load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
 
-if ischar(id) || isnumeric(id) % Load file if a location or row index of a spreadsheet entry 
+if ischar(id) || isnumeric(id) % Load file if a location or row index of a spreadsheet entry
     % Find/load AllMeasurements.mat - a full file path can be specfied, or an
     % ID corresponding to an entry on the ScopeRuns spreadsheet.
-    if ~exist(num2str(id), 'file') && isnumeric(id)
-        data = readScopeRuns(locations.spreadsheet, id);
+    if ~isfile(num2str(id)) && isnumeric(id)
+        %         data = readScopeRuns(locations.spreadsheet, id);
+        data=read_id(id);
         info.name = [data.save_folder{1}];
         load([locations.data,filesep,data.save_dir{1},filesep,info.name,filesep,'AllMeasurements.mat'])
         info.savename = [locations.data,filesep,data.save_dir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
-
-    elseif exist(num2str(id), 'file')
+        
+    elseif isfile(num2str(id))
         id = namecheck(id);
-        load(id)
+        load(id);
         info.savename = id;
     else
         error(['Specified file/index (''id'') is invalid'])
@@ -48,7 +49,7 @@ info.ImageDirectory = [locations.scope, AllMeasurements.parameters.ImagePath];
 measure = struct;
 for i = 1:length(info.fields)
     if ~strcmpi(info.fields{i},'parameters') && ~strcmpi(info.fields{i},'CellData')
-        measure.(info.fields{i}) = AllMeasurements.(info.fields{i}); 
+        measure.(info.fields{i}) = AllMeasurements.(info.fields{i});
     end
 end
 info.fields = fieldnames(measure);
@@ -87,8 +88,10 @@ try
             AllMeasurements.parameters = p;
             save(info.savename,'AllMeasurements')
         end
-    % Load NFkB measurement (unimodal background) for endogenous NFkB    
-    elseif isfield(AllMeasurements, 'NFkBdimNuclear')
+    end
+    % Load NFkB measurement (unimodal background) for endogenous NFkB
+    %     elseif isfield(AllMeasurements, 'NFkBdimNuclear')
+    if isfield(AllMeasurements, 'NFkBdimNuclear')
         if ~isfield(p, 'adj_distr')
             disp('Measuring and saving initial (flatfield-corrected) image distributions')
             p.adj_distr = zeros(2,length(p.XYRange));
@@ -114,15 +117,17 @@ try
                 warning on MATLAB:nearlySingularMatrix
                 % Apply background correction
                 img = reshape((double(img(:) - X*pStar)),size(img));
-
+                
                 img = img-min(img(:)); % Set minimum to zero
                 [~,p.adj_distr(:,ind)] = modebalance(img,1,bit_depth,'measure');
             end
-                AllMeasurements.parameters = p;
-                save(info.savename,'AllMeasurements')
+            AllMeasurements.parameters = p;
+            save(info.savename,'AllMeasurements')
         end
-        % Load nuclear image for nucIntenstiy Module (dim assumed - unimodal model)
-    elseif isfield(AllMeasurements, 'MeanIntensityNuc')
+    end
+    % Load nuclear image for nucIntenstiy Module (dim assumed - unimodal model)
+    %     elseif isfield(AllMeasurements, 'MeanIntensityNuc')
+    if isfield(AllMeasurements, 'MeanIntensityNuc')
         if ~isfield(p, 'adj_distr')
             disp('Measuring and saving initial (flatfield-corrected) image distributions')
             p.adj_distr = zeros(2,length(p.XYRange));
@@ -147,22 +152,23 @@ try
                 warning on MATLAB:nearlySingularMatrix
                 % Apply background correction
                 img = reshape((double(img(:) - X*pStar)),size(img));
-
+                
                 img = img-min(img(:)); % Set minimum to zero
                 [~,p.adj_distr(:,ind)] = modebalance(img,1,bit_depth,'measure');
             end
-                AllMeasurements.parameters = p;
-                save(info.savename,'AllMeasurements')
+            AllMeasurements.parameters = p;
+            save(info.savename,'AllMeasurements')
         end
     end
+    
 catch me
     disp(me)
     warning('Couldn''t find original images to measure background distributions - these may be required for some visualization functions.');
-
 end
 
 
 info.parameters = p;
 
 toc1 = toc;
-disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec']) 
+disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec'])
+end

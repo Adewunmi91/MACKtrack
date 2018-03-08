@@ -36,7 +36,7 @@ addRequired(p,'id',valid_id);
 % Optional parameters
 %addParameter(p,'Baseline', 1.85, @isnumeric);
 addParameter(p,'Baseline', 1.0, @isnumeric);
-addParameter(p, 'start_thresh', 1.5, @isnumeric); 
+addParameter(p, 'start_thresh', 2, @isnumeric); 
 addParameter(p, 'area_thresh', 90, @isnumeric); 
 addParameter(p,'MinLifetime',97, @isnumeric);
 addParameter(p,'TrimFrame',139, @isnumeric);
@@ -68,7 +68,8 @@ else
    [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',convection_shift,...
        'baseline', baseline,'start_thresh', start_thresh, 'area_thresh', area_thresh);
 end
-graph.var = graph.var(:,1:p.Results.TrimFrame);
+
+graph.var = graph.var(:,1:min(p.Results.TrimFrame, size(graph.var,2)));
 graph.t = graph.t(1:size(graph.var,2));
 graph.opt = maketicks(graph.t,info.graph_limits,0);
 graph.opt.Name= 'NF\kappaB Activation';

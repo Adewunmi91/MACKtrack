@@ -163,12 +163,12 @@ if isnumeric(id)
            disp ('Using custom params')
         end      
             %TNF KO Data set
-         if ismember (id, 472:473)
-              disp ('Using custom params')
-             start_thresh = 4;
-             MinLifetime = 80;     
+%          if ismember (id, 472:473)
+%               disp ('Using custom params')
+%              start_thresh = 4;
+%              MinLifetime = 80;     
              
-         end
+%          end
          if ismember (id, 394:401)
               disp ('Using custom params')
              start_thresh = 4;
