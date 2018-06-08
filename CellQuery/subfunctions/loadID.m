@@ -1,13 +1,13 @@
 
-function [measure, info, AllMeasurements] = loadID(id, verbose)
+function [measure, info, AllMeasurements] = loadID(ID, verbose)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-% [measure, info, AllMeasurements] = loadID(id, options)
+% [measure, info, AllMeasurements] = loadID(ID, options)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 % LOADID pulls results from an experimental set using a "Scope Runs" Google Doc -
 % choose a set by its ID number
 %
 % INPUTS
-% id          ID# of sets get data from (or AllMeasurements.mat file location, or AllMeasurements object)
+% ID          ID# of sets get data from (or AllMeasurements.mat file location, or AllMeasurements object)
 %
 % OUTPUTS:
 % measure          full measurement information struct
@@ -24,25 +24,25 @@ home_folder = mfilename('fullpath'); % Load locations (for images and output dat
 slash_idx = strfind(home_folder,filesep);
 load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
 
-if ischar(id) || isnumeric(id) % Load file if a location or row index of a spreadsheet entry
+if ischar(ID) || isnumeric(ID) % Load file if a location or row index of a spreadsheet entry
     % Find/load AllMeasurements.mat - a full file path can be specfied, or an
     % ID corresponding to an entry on the ScopeRuns spreadsheet.
-    if ~isfile(num2str(id)) && isnumeric(id)
-        %         data = readScopeRuns(locations.spreadsheet, id);
-        data=read_id(id);
-        info.name = [data.save_folder{1}];
-        load([locations.data,filesep,data.save_dir{1},filesep,info.name,filesep,'AllMeasurements.mat'])
-        info.savename = [locations.data,filesep,data.save_dir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
+    if ~isfile(num2str(ID)) && isnumeric(ID)
+        %         data = readScopeRuns(locations.spreadsheet, ID);
+        data=read_id(ID);
+        info.name = [data.SaveFolder{1}];
+        load([locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'])
+        info.savename = [locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
         
-    elseif isfile(num2str(id))
-        id = namecheck(id);
-        load(id);
-        info.savename = id;
+    elseif isfile(num2str(ID))
+        ID = namecheck(ID);
+        load(ID);
+        info.savename = ID;
     else
-        error(['Specified file/index (''id'') is invalid'])
+        error(['Specified file/index (''ID'') is invalid'])
     end
-elseif isstruct(id)
-    AllMeasurements = id;
+elseif isstruct(ID)
+    AllMeasurements = ID;
     info.savename = [locations.data,AllMeasurements.parameters.SaveDirectory,filesep,'AllMeasurements.mat'];
 else
     error(['loadID accepts an "AllMeasurements" structure, or a file location/spreadsheet row index.'])

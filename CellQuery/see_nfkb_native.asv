@@ -50,7 +50,7 @@ addParameter (p, 'GraphLimits',[-0.25 5.5],@isnumeric);
 addParameter (p, 'AreaThresh', 90, @isnumeric);
 
 % Parse parameters, assign to variables
-parse(p,ID, varargin{:})
+.parse(p,ID, varargin{:})
 if strcmpi(p.Results.Verbose,'on'); verbose_flag = 1; else verbose_flag = 0; end
 if strcmpi(p.Results.Display,'on'); graph_flag = 1; else graph_flag = 0; end
 MinLifetime = p.Results.MinLifetime;
