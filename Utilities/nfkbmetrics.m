@@ -36,8 +36,8 @@ addRequired(p,'id',valid_id);
 % Optional parameters
 %addParameter(p,'Baseline', 1.85, @isnumeric);
 addParameter(p,'Baseline', 1.0, @isnumeric);
-addParameter(p, 'start_thresh', 2, @isnumeric); 
-addParameter(p, 'area_thresh', 90, @isnumeric); 
+addParameter(p, 'StartThresh', 2, @isnumeric); 
+addParameter(p, 'AreaThresh', 90, @isnumeric); 
 addParameter(p,'MinLifetime',97, @isnumeric);
 addParameter(p,'TrimFrame',139, @isnumeric);
 valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
@@ -46,36 +46,36 @@ addParameter(p,'ConvectionShift',1, valid_conv);
 parse(p,id, varargin{:})
 
 %% PARAMETETERS for finding off times - chosen using 'scan_off_params.m'
-baseline = p.Results.Baseline; % Minimum activity required for cell to register as 'on'
+Baseline = p.Results.Baseline; % Minimum activity required for cell to register as 'on'
 window_sz = 14; % ~1 hr windows (on either side of a given timepoint)
 thresh = 0.9; % Pct of inactivity allowed in a given window
 cutoff_time = 4; % time to look for cell activity before declaring it "off" (hrs)
 off_pad = 12; % Signal time added to trajectory in  FFT calculation (keeps transients from being recorded as osc.)
 
 %% INITIALIZATION. Load and process data. Interpolate time series, calculate deriv/integral approximations
-start_thresh = p.Results.start_thresh; 
-area_thresh = p.Results.area_thresh; 
-min_lifetime = p.Results.MinLifetime; 
-convection_shift = p.Results.ConvectionShift; 
+StartThresh = p.Results.StartThresh; 
+AreaThresh = p.Results.AreaThresh; 
+MinLifetime = p.Results.MinLifetime; 
+ConvectionShift = p.Results.ConvectionShift; 
 
 
 if ~ismember('MinLifetime',p.UsingDefaults)
-   [graph, info, measure] = see_nfkb_native(id,'MinLifetime',min_lifetime,...
-                            'ConvectionShift',convection_shift, 'baseline',baseline,...
-                            'area_thresh', area_thresh,'start_thresh', start_thresh);
+   [graph, info, measure] = see_nfkb_native(id,'MinLifetime',MinLifetime,...
+                            'ConvectionShift',ConvectionShift, 'Baseline',Baseline,...
+                            'AreaThresh', AreaThresh,'StartThresh', StartThresh);
    
 else
-   [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',convection_shift,...
-       'baseline', baseline,'start_thresh', start_thresh, 'area_thresh', area_thresh);
+   [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',ConvectionShift,...
+       'Baseline', Baseline,'StartThresh', StartThresh, 'AreaThresh', AreaThresh);
 end
 
 graph.var = graph.var(:,1:min(p.Results.TrimFrame, size(graph.var,2)));
 graph.t = graph.t(1:size(graph.var,2));
-graph.opt = maketicks(graph.t,info.graph_limits,0);
+graph.opt = maketicks(graph.t,info.GraphLimits,0);
 graph.opt.Name= 'NF\kappaB Activation';
 
-if ~ismember ('baseline',p.UsingDefaults)
-    baseline = info.baseline;
+if ~ismember ('Baseline',p.UsingDefaults)
+    Baseline = info.Baseline;
 end
 
 %%
@@ -138,7 +138,7 @@ metrics.min_derivative = nanmin(metrics.derivatives,[],2);
 metrics.off_times = zeros(size(smoothed,1),1);
 inactive = [repmat(nanmin(smoothed(:,1:7),[],2),1,window_sz*2+1),smoothed(:,:),...
     repmat(nanmedian(smoothed(:,(end-window_sz:end)),2),1,window_sz*2)];
-inactive = smoothrows(inactive<(baseline),(window_sz*2));
+inactive = smoothrows(inactive<(Baseline),(window_sz*2));
 frontcrop = round(window_sz*2*(1-thresh))+window_sz+1;
 inactive = inactive(:,frontcrop:end);
 inactive = inactive(:,1:size(smoothed,2));
@@ -258,7 +258,7 @@ metrics.pk2_time = (metrics.pk2_time-1)/12;
 %% METRICS OF DURATION
 % Envelope width: maximum consecutive time above a threshold (envelope must begin within 1st 6 hrs)
 smoothed2 = medfilt1(metrics.time_series,5,[],2);
-aux.thresholds = linspace(0,baseline*3,25);
+aux.thresholds = linspace(0,Baseline*3,25);
 metrics.envelope = zeros(size(metrics.time_series,1),length(aux.thresholds));
 for j = 1:length(aux.thresholds)
     thresholded = smoothed2>aux.thresholds(j);
@@ -290,6 +290,4 @@ metrics.duration = zeros(size(metrics.time_series,1),length(aux.thresholds));
 for i = 1:length(aux.thresholds)
     metrics.duration(:,i) = nansum(smoothed>aux.thresholds(i),2)/12;
 end
-
-
-
+end

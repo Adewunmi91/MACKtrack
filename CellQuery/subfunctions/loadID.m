@@ -1,12 +1,12 @@
-function [measure, info, AllMeasurements] = loadID(id, verbose)
+function [measure, info, AllMeasurements] = loadID(ID, verbose)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-% [measure, info, AllMeasurements] = loadID(id, options)
+% [measure, info, AllMeasurements] = loadID(ID, options)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 % LOADID pulls results from an experimental set using a "Scope Runs" Google Doc -
 % choose a set by its ID number
 %
 % INPUTS
-% id          ID# of sets get data from (or AllMeasurements.mat file location, or AllMeasurements object)
+% ID          ID# of sets get data from (or AllMeasurements.mat file location, or AllMeasurements object)
 %
 % OUTPUTS:
 % measure          full measurement information struct
@@ -17,34 +17,31 @@ if nargin<2
     verbose =1 ;
 end
 
-paths = loadpaths; 
-locations.data = paths.tracking.cache;
-locations.spreadsheet = paths.spreadsheet; 
-locations.scope=paths.image.remote;
-tic;
-% home_folder = mfilename('fullpath'); % Load locations (for images and output data)
-% slash_idx = strfind(home_folder,filesep);
-% load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
 
-if ischar(id) || isnumeric(id) % Load file if a location or row index of a spreadsheet entry 
+tic;
+home_folder = mfilename('fullpath'); % Load locations (for images and output data)
+slash_idx = strfind(home_folder,filesep);
+load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
+
+if ischar(ID) || isnumeric(ID) % Load file if a location or row index of a spreadsheet entry
     % Find/load AllMeasurements.mat - a full file path can be specfied, or an
     % ID corresponding to an entry on the ScopeRuns spreadsheet.
-    if ~isfile(num2str(id)) && isnumeric(id)
-        data = read_id(id); 
-%         data = readScopeRuns(locations.spreadsheet, id);
-        info.name = [data.save_folder{1}];
-        load([locations.data,filesep,data.save_dir{1},filesep,info.name,filesep,'AllMeasurements.mat'])
-        info.savename = [locations.data,filesep,data.save_dir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
-          
-    elseif isfile(num2str(id))
-        id = namecheck(id);
-        load(id)
-        info.savename = id;
+    if ~isfile(num2str(ID)) && isnumeric(ID)
+        %         data = readScopeRuns(locations.spreadsheet, ID);
+        data=read_id(ID);
+        info.name = [data.SaveFolder{1}];
+        load([locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'])
+        info.savename = [locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
+        
+    elseif isfile(num2str(ID))
+        ID = namecheck(ID);
+        load(ID);
+        info.savename = ID;
     else
-        error(['Specified file/index (''id'') is invalid'])
+        error(['Specified file/index (''ID'') is invalid'])
     end
-elseif isstruct(id)
-    AllMeasurements = id;
+elseif isstruct(ID)
+    AllMeasurements = ID;
     info.savename = [locations.data,AllMeasurements.parameters.SaveDirectory,filesep,'AllMeasurements.mat'];
 else
     error(['loadID accepts an "AllMeasurements" structure, or a file location/spreadsheet row index.'])
@@ -60,7 +57,7 @@ info.ImageDirectory = [locations.scope, AllMeasurements.parameters.ImagePath];
 measure = struct;
 for i = 1:length(info.fields)
     if ~strcmpi(info.fields{i},'parameters') && ~strcmpi(info.fields{i},'CellData')
-        measure.(info.fields{i}) = AllMeasurements.(info.fields{i}); 
+        measure.(info.fields{i}) = AllMeasurements.(info.fields{i});
     end
 end
 info.fields = fieldnames(measure);
@@ -87,11 +84,11 @@ try
                     if isfield(p,'BitDepth')
                         bit_depth = p.BitDepth;
                     else
-                        imfo = imfinfo([locations.scope,filesep, p.ImagePath, eval(expr)]);
+                        imfo = imfinfo([locations.scope, p.ImagePath, eval(expr)]);
                         bit_depth = imfo.BitDepth;
                     end
                 end
-                img = checkread([locations.scope,filesep, p.ImagePath, eval(expr)],bit_depth,1,1);
+                img = checkread([locations.scope, p.ImagePath, eval(expr)],bit_depth,1,1);
                 nfkb_thresh(ind) = quickthresh(img,false(size(img)),'log');
                 [~,p.img_distr(:,ind)] = modebalance(img,2,bit_depth,'measure');
             end
@@ -99,8 +96,6 @@ try
             AllMeasurements.parameters = p;
             save(info.savename,'AllMeasurements')
         end
-    % Load NFkB measurement (unimodal background) for endogenous NFkB images
-    elseif isfield(AllMeasurements, 'NFkBdimNuclear')
         if ~isfield(p, 'adj_distr')
             disp('Measuring and saving initial (flatfield-corrected) image distributions')
             p.adj_distr = zeros(2,length(p.XYRange));
@@ -113,11 +108,11 @@ try
                     if isfield(p,'BitDepth')
                         bit_depth = p.BitDepth;
                     else
-                        imfo = imfinfo([locations.scope,filesep, p.ImagePath, eval(expr)]);
+                        imfo = imfinfo([locations.scope, p.ImagePath, eval(expr)]);
                         bit_depth = imfo.BitDepth;
                     end
                 end
-                img = checkread([locations.scope, filesep, p.ImagePath, eval(expr)],bit_depth,1,1);
+                img = checkread([locations.scope, p.ImagePath, eval(expr)],bit_depth,1,1);
                 if ind==1
                     X = backgroundcalculate(size(img));
                 end
@@ -126,15 +121,18 @@ try
                 warning on MATLAB:nearlySingularMatrix
                 % Apply background correction
                 img = reshape((double(img(:) - X*pStar)),size(img));
+                
                 img = img-min(img(:)); % Set minimum to zero
                 [~,p.adj_distr(:,ind)] = modebalance(img,1,bit_depth,'measure');
             end
-                AllMeasurements.parameters = p;
-                save(info.savename,'AllMeasurements')
+            AllMeasurements.parameters = p;
+            save(info.savename,'AllMeasurements')
         end
-   
-         % Load nuclear image for nucIntenstiy Module (dim assumed - unimodal model)
-    elseif isfield(AllMeasurements, 'MeanIntensityNuc')
+
+    end
+    % Load nuclear image for nucIntenstiy Module (dim assumed - unimodal model)
+    %     elseif isfield(AllMeasurements, 'MeanIntensityNuc')
+    if isfield(AllMeasurements, 'MeanIntensityNuc')
         if ~isfield(p, 'adj_distr')
             disp('Measuring and saving initial (flatfield-corrected) image distributions')
             p.adj_distr = zeros(2,length(p.XYRange));
@@ -146,11 +144,11 @@ try
                     if isfield(p,'BitDepth')
                         bit_depth = p.BitDepth;
                     else
-                        imfo = imfinfo([locations.scope, filesep,p.ImagePath, eval(expr)]);
+                        imfo = imfinfo([locations.scope, p.ImagePath, eval(expr)]);
                         bit_depth = imfo.BitDepth;
                     end
                 end
-                img = checkread([locations.scope,filesep, p.ImagePath, eval(expr)],bit_depth,1,1);
+                img = checkread([locations.scope, p.ImagePath, eval(expr)],bit_depth,1,1);
                 if ind==1
                     X = backgroundcalculate(size(img));
                 end
@@ -159,14 +157,16 @@ try
                 warning on MATLAB:nearlySingularMatrix
                 % Apply background correction
                 img = reshape((double(img(:) - X*pStar)),size(img));
-
+                
                 img = img-min(img(:)); % Set minimum to zero
                 [~,p.adj_distr(:,ind)] = modebalance(img,1,bit_depth,'measure');
             end
-                AllMeasurements.parameters = p;
-                save(info.savename,'AllMeasurements')
+            AllMeasurements.parameters = p;
+            save(info.savename,'AllMeasurements')
         end
+
     end
+    
 catch me
     disp(me)
     warning('Couldn''t find original images to measure background distributions - these may be required for some visualization functions.');
@@ -176,6 +176,7 @@ end
 info.parameters = p;
 
 toc1 = toc;
+
 if verbose
     disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec']) 
 end
