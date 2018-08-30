@@ -84,7 +84,7 @@ else
     if ~isfield(parameters,'Parallel')
         parameters.Parallel = length(parameters.XYRange)>1;
     end
-    disp(['Measuring ', parameters.SaveDirectory,'...'])
+    disp(['Measuring ', parameters.SaveDirectory,'...']);
     try
         MACKmeasure(parameters);      
     catch ME

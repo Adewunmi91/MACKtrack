@@ -160,7 +160,7 @@ contents = dir([handles.home_folder,filesep, 'CellMeasure']);
 % Find all 'modules' in directory, list
 dropind = [];
 for i = 1:length(contents)
-    if isempty(strfind(lower(contents(i).name),'module')) % Capitalization-independent
+    if ~contains(lower(contents(i).name),'module.m') % Capitalization-independent
         dropind = [dropind,i];
     else
         contents(i).name = contents(i).name(1:end-2); % (Drop the .m)
@@ -192,7 +192,7 @@ end
 % Cycle fields in parameters- if it refers to an old module, drop it.
 testnames = fieldnames(handles.parameters);
 for i = 1:length(testnames)
-     if ~isempty(strfind(lower(testnames{i}),'module')) && ~strcmp(testnames{i},'ModuleNames')
+     if contains(lower(testnames{i}),'module') && ~strcmp(testnames{i},'ModuleNames')
          try 
              validatestring(testnames{i},handles.parameters.ModuleNames);
          catch me

@@ -40,6 +40,7 @@ addParameter(p, 'StartThresh', 2, @isnumeric);
 addParameter(p, 'AreaThresh', 90, @isnumeric); 
 addParameter(p,'MinLifetime',97, @isnumeric);
 addParameter(p,'TrimFrame',139, @isnumeric);
+addParameter(p,'Source','ade', @ischar);
 valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
     'Convection correction parameter must be single integer >= 0');
 addParameter(p,'ConvectionShift',1, valid_conv);
@@ -62,11 +63,11 @@ ConvectionShift = p.Results.ConvectionShift;
 if ~ismember('MinLifetime',p.UsingDefaults)
    [graph, info, measure] = see_nfkb_native(id,'MinLifetime',MinLifetime,...
                             'ConvectionShift',ConvectionShift, 'Baseline',Baseline,...
-                            'AreaThresh', AreaThresh,'StartThresh', StartThresh);
+                            'AreaThresh', AreaThresh,'StartThresh', StartThresh, 'Source', p.Results.Source);
    
 else
    [graph, info, measure] = see_nfkb_native(id, 'ConvectionShift',ConvectionShift,...
-       'Baseline', Baseline,'StartThresh', StartThresh, 'AreaThresh', AreaThresh);
+       'Baseline', Baseline,'StartThresh', StartThresh, 'AreaThresh', AreaThresh, 'Source', p.Results.Source);
 end
 
 graph.var = graph.var(:,1:min(p.Results.TrimFrame, size(graph.var,2)));

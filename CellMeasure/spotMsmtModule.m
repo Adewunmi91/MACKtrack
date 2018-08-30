@@ -1,6 +1,6 @@
-function [CellMeasurements, ModuleDataOut] = spotcountModule(CellMeasurements,parameters, labels, AuxImages, ModuleData)
+function [CellMeasurements, ModuleDataOut] = spotMsmtModule(CellMeasurements,parameters, labels, AuxImages, ModuleData)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-% SPOTCOUNTMODULE applies a high-pass filter to image, then counts regional maxima
+% SPOTMSMTMODULE applies a high-pass filter to image, then counts regional maxima
 % It requires a 2nd Aux image to be passed- this should be a in image with
 % lots of spots, you build a threshold off of.
 %

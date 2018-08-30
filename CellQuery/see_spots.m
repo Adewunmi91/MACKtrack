@@ -32,7 +32,7 @@ end
 
 % Load data; set parameters
 [measure, info] = loadID(id);
-info.ImageExpr = info.parameters.spotCountModule.ImageExpr;
+info.ImageExpr = info.parameters.spotcountModule.ImageExpr;
 t_hrs = min([21,size(measure.NumSpots,2)/info.parameters.FramesPerHour]); % Number of hours to display in graphs
 info.graph_limits = [0 20];
 
@@ -46,7 +46,7 @@ droprows = [droprows, sum(isnan(measure.NumSpots(:,1:100)),2)>3]; % Long-lived c
 %% Outputs
 info.keep = max(droprows,[],2) == 0;
 graph.var = measure.NumSpots(info.keep,:);
-graph.t = 0:(1/info.parameters.FramesPerHour):t_hrs;
+graph.t = 0:(1/info.parameters.FramesPerHour):t_hrs-1;
 graph.var = graph.var(:,1:length(graph.t));
 
 

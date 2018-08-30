@@ -8,7 +8,7 @@ function [] = measureLoop(xy, parameters)
 %- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 % Form xy path, initialize structures for measurements and module information              
-parameters.XYDir = namecheck([parameters.locations.data,filesep,parameters.SaveDirectory,filesep,'xy',num2str(xy),filesep]);   
+parameters.XYDir = fullfile(parameters.locations.data,parameters.SaveDirectory,['xy',num2str(xy)]);   
 CellMeasurements = struct;      
 ModuleData = struct;
 
@@ -22,8 +22,9 @@ parameters.ModuleNames = [parameters.ModuleNames(~names_penult),parameters.Modul
 
 
 % Load and add CellData field to CellMeasurements
-if exist([parameters.XYDir,'CellData.mat'],'file')
-    load([parameters.XYDir,'CellData.mat']);
+cellDataFile = fullfile(parameters.XYDir,'CellData.mat'); 
+if isfile(cellDataFile)
+    load(cellDataFile)
     parameters.TotalCells = length(CellData.FrameIn);
     i = xy;
 
@@ -43,11 +44,13 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
         % Run measurement modules, adding new fields to CellMeasurements
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Load label matricies ('CellLabel' and 'NuclearLabel')
-        if exist([parameters.XYDir,'CellLabels'],'dir')
-            load([parameters.XYDir,'CellLabels',filesep,'CellLabel-',numseq(iter,4),'.mat'])
+        cellLabelFile= fullfile(parameters.XYDir,'CellLabels',['CellLabel-',numseq(iter,4),'.mat'] );
+        if isfile(cellLabelFile)
+            load(cellLabelFile)
             labels.Cell = CellLabel;
         end
-        load([parameters.XYDir,'NuclearLabels',filesep,'NuclearLabel-',numseq(iter,4),'.mat'])
+        nucLabelFile= fullfile(parameters.XYDir,'NuclearLabels',['NuclearLabel-',numseq(iter,4),'.mat']);
+        load(nucLabelFile);
         labels.Nucleus = NuclearLabel; 
         % Make sure that there aren't extra cells or nuclei around
         if isfield(labels,'Cell')
@@ -82,7 +85,7 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
             
             ModuleData.AuxName = cell(1,3);
             AuxImages = cell(size(ModuleData.AuxName));
-            if  parameters.(ModuleData.name).Use == 1;                
+            if  parameters.(ModuleData.name).Use == 1                
                 % Check/load/correct auxiliary images
                 for aux = 1:3
                     % Check name
@@ -92,12 +95,12 @@ if exist([parameters.XYDir,'CellData.mat'],'file')
                         curr_expr = parameters.(ModuleData.name).(['ImageExpr',num2str(aux)]);
                     end
                     try
-                        curr_name = namecheck([parameters.locations.scope, filesep,parameters.ImagePath, filesep, eval(curr_expr)]); 
+                        curr_name = fullfile(parameters.locations.scope,parameters.ImagePath, eval(curr_expr)); 
                     catch
                         curr_name = '--';
                     end
                     % Check file and add it into AuxImages
-                    if exist(curr_name,'file')
+                    if isfile(curr_name)
                         if ~isfield(ModuleData,'BitDepth')
                             imfo = imfinfo(curr_name);
                             ModuleData.BitDepth = imfo.BitDepth;

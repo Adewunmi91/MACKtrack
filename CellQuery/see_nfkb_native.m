@@ -48,6 +48,7 @@ addParameter (p,'StartThresh', 2, @isnumeric);
 addParameter (p, 'Baseline', 0.75, @isnumeric);
 addParameter (p, 'GraphLimits',[-0.25 5.5],@isnumeric);
 addParameter (p, 'AreaThresh', 90, @isnumeric);
+addParameter (p, 'Source', 'ade');
 
 % Parse parameters, assign to variables
 parse(p,ID, varargin{:})
@@ -60,7 +61,7 @@ AreaThresh = p.Results.AreaThresh;
 StartThresh= p.Results.StartThresh;
 
 %% Load data
-[measure, info] = loadID(ID);
+[measure, info] = load_id(ID, 'Source',p.Results.Source);
 info.ImageExpr = info.parameters.nfkbdimModule.ImageExpr;
 
 info.GraphLimits = p.Results.GraphLimits;
@@ -75,15 +76,15 @@ colors = setcolors;
 % Experiment-specific visualization settings/tweaks (load spreadsheet URL)
 baseline_length = size(measure.NFkBdimNuclear,2); % Endframe for baseline calculation (default: use entire vector)
 
-home_folder = mfilename('fullpath');
-slash_idx = strfind(home_folder,filesep);
-home_folder = home_folder(1:slash_idx(end-1));
-load([home_folder, 'locations.mat'],'-mat')
+% home_folder = mfilename('fullpath');
+% slash_idx = strfind(home_folder,filesep);
+% home_folder = home_folder(1:slash_idx(end-1));
+% load([home_folder, 'locations.mat'],'-mat')
 
 % Experiment-specific visualization settings/tweaks (set by spreadsheet URL)
 % BT's experiments
 if isnumeric(ID)
-    if  ~isempty(strfind(locations.spreadsheet,'10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY'))
+    if  ~isempty(strfind(info.locations.spreadsheet,'10o_d9HN8dhw8bX4tbGxFBJ63ju7tODVImZWNrnewmwY'))
         % a) Heterozygous cell experiments
         if (ID <= 270) || ismember(ID,[370:379, 384:391, 395, 396])
             StartThresh = 1.5;
@@ -111,7 +112,7 @@ if isnumeric(ID)
         end
 
         % e) prestimulated sets; don't filter pre-activated cells
-        if ismember(ID,[267:270, 323:324, 337:339,342:343, 356:360]); 
+        if ismember(ID,[267:270, 323:324, 337:339,342:343, 356:360])
             StartThresh = 10;
         end
 
@@ -125,7 +126,7 @@ if isnumeric(ID)
             disp('(Using eroded nuclei)')
         end
     % AA's experiments    
-    elseif ~isempty(strfind(locations.spreadsheet,'1s51cOI7NvLIOEpEhZWjJKsPkCOE5Qz39m4tHa9nJ7ok'))
+    elseif ~isempty(strfind(info.locations.spreadsheet,'1s51cOI7NvLIOEpEhZWjJKsPkCOE5Qz39m4tHa9nJ7ok'))
         % a) early experiments; heterozygous cells
         
         if ismember (ID, [1:60, 364:379])
