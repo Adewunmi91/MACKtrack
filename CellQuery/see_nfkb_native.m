@@ -43,9 +43,9 @@ addParameter(p,'Verbose','off', @(x) any(validatestring(x,expectedFlags)));
 valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
     'Convection correction parameter must be single integer >= 0');
 addParameter(p,'ConvectionShift',1, valid_conv);
-addParameter(p,'MinLifetime',100, @isnumeric);
+addParameter(p,'MinLifetime',97, @isnumeric);
 addParameter (p,'StartThresh', 2, @isnumeric);
-addParameter (p, 'Baseline', 0.75, @isnumeric);
+addParameter (p, 'Baseline', 1, @isnumeric);
 addParameter (p, 'GraphLimits',[-0.25 5.5],@isnumeric);
 addParameter (p, 'AreaThresh', 90, @isnumeric);
 addParameter (p, 'Source', 'ade');

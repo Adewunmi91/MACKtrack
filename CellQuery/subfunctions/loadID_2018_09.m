@@ -1,7 +1,7 @@
-function [measure, info, AllMeasurements] = loadID(ID, verbose)
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+function [measure, info, AllMeasurements] = loadID(ID, verbose,varargin)
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % [measure, info, AllMeasurements] = loadID(ID, options)
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 % LOADID pulls results from an experimental set using a "Scope Runs" Google Doc -
 % choose a set by its ID number
 %
@@ -12,19 +12,26 @@ function [measure, info, AllMeasurements] = loadID(ID, verbose)
 % measure          full measurement information struct
 % info             general information about experiment and tracking
 % AllMeasurements  originally-saved output file, augmented w/ measurement-specific information
-%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 if nargin<2
     verbose =1 ;
+end
+paths = loadpaths;
+if ~isempty(varargin)
+    locations = varargin{1};
+else
+    
+    fh =load(fullfile(paths.MACKtrack, 'locations.mat'));
+    locations = fh.locations;
 end
 
 
 tic;
-paths = loadpaths;
+
 % home_folder = mfilename('fullpath'); % Load locations (for images and output data)
 % slash_idx = strfind(home_folder,filesep);
 % load([home_folder(1:slash_idx(end-2)), 'locations.mat'],'-mat')
-fh =load(fullfile(paths.MACKtrack, 'locations.mat'));
-locations = fh.locations; 
+
 
 if ischar(ID) || isnumeric(ID) % Load file if a location or row index of a spreadsheet entry
     % Find/load AllMeasurements.mat - a full file path can be specfied, or an
@@ -132,7 +139,7 @@ try
             AllMeasurements.parameters = p;
             save(info.savename,'AllMeasurements')
         end
-
+        
     end
     % Load nuclear image for nucIntenstiy Module (dim assumed - unimodal model)
     %     elseif isfield(AllMeasurements, 'MeanIntensityNuc')
@@ -168,7 +175,7 @@ try
             AllMeasurements.parameters = p;
             save(info.savename,'AllMeasurements')
         end
-
+        
     end
     
 catch me
@@ -182,5 +189,5 @@ info.parameters = p;
 toc1 = toc;
 
 if verbose
-    disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec']) 
+    disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec'])
 end
