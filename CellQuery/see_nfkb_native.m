@@ -32,7 +32,7 @@
 %% Create input parser object, add required params from function input
 p = inputParser;
 % Required: ID input
-valid_id = @(x) assert((isnumeric(x)&&length(x)==1)||isstruct(x)||exist(x,'file'),...
+valid_id = @(x) assert((isnumeric(x)&&length(x)==1)||isstruct(x)||isfile(x)||exist(x,'file'),...
     'ID input must be spreadsheet ID or full file path');
 addRequired(p,'ID',valid_id);
 

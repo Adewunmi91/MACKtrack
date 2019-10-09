@@ -40,7 +40,7 @@ addParameter(p, 'StartThresh', 2, @isnumeric);
 addParameter(p, 'AreaThresh', 90, @isnumeric); 
 addParameter(p,'MinLifetime',97, @isnumeric);
 addParameter(p,'TrimFrame',139, @isnumeric);
-addParameter(p,'Source','ade', @ischar);
+addParameter(p,'Source','ade', @istext);
 valid_conv = @(x) assert(isnumeric(x)&&(x>=0)&&(length(x)==1),...
     'Convection correction parameter must be single integer >= 0');
 addParameter(p,'ConvectionShift',1, valid_conv);
@@ -161,6 +161,7 @@ metrics.off_times(metrics.off_times<0) = 0;
 % Calculate fourier distribution (via FFT) & power
 Fs = 1/300;
 depth = max(metrics.off_times)*12;
+% depth = max(max(metrics.off_times)*12,4);
 NFFT = 2^nextpow2(depth); % Next power of 2 from chosen depth
 aux.fft = zeros(size(metrics.time_series,1),NFFT/2+1);
 aux.freq = Fs/2*linspace(0,1,NFFT/2+1);

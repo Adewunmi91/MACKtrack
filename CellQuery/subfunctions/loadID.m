@@ -28,23 +28,27 @@ end
 
 tic;
 
-if ischar(ID) || isnumeric(ID) % Load file if a location or row index of a spreadsheet entry
+if istext(ID) || isnumeric(ID) % Load file if a location or row index of a spreadsheet entry
     % Find/load AllMeasurements.mat - a full file path can be specfied, or an
     % ID corresponding to an entry on the ScopeRuns spreadsheet.
     if ~isfile(num2str(ID)) && isnumeric(ID)
         %         data = readScopeRuns(locations.spreadsheet, ID);
         data=read_id(ID);
         info.name = [data.SaveFolder{1}];
-        load([locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'])
-        info.savename = [locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
+        fileName = [locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
+%         load(fileName)
+        fh=loadFile(fileName, 'Fresh',false);
+%         info.savename = [locations.data,filesep,data.SaveDir{1},filesep,info.name,filesep,'AllMeasurements.mat'];
+        info.savename = fileName;
         
     elseif isfile(num2str(ID))
         ID = namecheck(ID);
-        load(ID);
+        fh=loadFile(ID, 'Fresh', false);
         info.savename = ID;
     else
         error(['Specified file/index (''ID'') is invalid'])
     end
+    AllMeasurements = fh.AllMeasurements;
 elseif isstruct(ID)
     AllMeasurements = ID;
     info.savename = [locations.data,AllMeasurements.parameters.SaveDirectory,filesep,'AllMeasurements.mat'];
@@ -216,5 +220,5 @@ info.parameters = p;
 toc1 = toc;
 
 if verbose
-    disp(['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec'])
+    disp("In loadID: "+newline+['Loaded "', info.savename, '" in ', num2str(round(toc1*100)/100),' sec'])
 end
